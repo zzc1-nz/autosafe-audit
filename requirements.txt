@@ -1,0 +1,15 @@
+# AutoSafe-Audit 运行依赖
+# Python >= 3.10（开发与验证环境为 3.14）
+
+# 真实静态分析器（真实调用 CLI，非模拟）
+bandit>=1.7
+
+# 图表
+matplotlib>=3.7
+numpy>=1.24
+
+# 测试
+pytest>=7.4
+
+# 可选：接入真实 LLM provider（默认使用确定性模拟 provider，无需安装）
+# litellm>=1.40

@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "generated_at": "2026-11-16T06:41:22+0800",
+    "seeds": [
+      7,
+      11,
+      23
+    ],
+    "profiles": [
+      "strong",
+      "baseline",
+      "weak"
+    ],
+    "max_rounds": 8,
+    "provider": "simulated",
+    "note": "knee recomputed via aggregate_curve + find_knee"
+  },
+  "runs": [
+    {
+      "profile": "strong",
+      "seed": 7,
+      "total_tokens": 420829,
+      "total_fixed": 63,
+      "total_defects": 80,
+      "fix_rate": 0.7875,
+      "tokens_per_fix": 6679.8,
+      "knee_round": 5,
+      "knee_method": "observed",
+      "marginal_series": [
+        35.45,
+        16.19,
+        8.82,
+        2.73,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "profile": "strong",
+      "seed": 11,
+      "total_tokens": 440004,
+      "total_fixed": 61,
+      "total_defects": 80,
+      "fix_rate": 0.7625,
+      "tokens_per_fix": 7213.2,
+      "knee_round": 7,
+      "knee_method": "observed",
+      "marginal_series": [
+        32.14,
+        14.09,
+        9.45,
+        4.87,
+        0.0,
+        3.04,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "profile": "strong",
+      "seed": 23,
+      "total_tokens": 391339,
+      "total_fixed": 64,
+      "total_defects": 80,
+      "fix_rate": 0.8,
+      "tokens_per_fix": 6114.7,
+      "knee_round": 6,
+      "knee_method": "observed",
+      "marginal_series": [
+        35.77,
+        13.84,
+        11.16,
+        3.44,
+        3.44,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "profile": "baseline",
+      "seed": 7,
+      "total_tokens": 567592,
+      "total_fixed": 57,
+      "total_defects": 80,
+      "fix_rate": 0.7125,
+      "tokens_per_fix": 9957.8,
+      "knee_round": 7,
+      "knee_method": "observed",
+      "marginal_series": [
+        26.57,
+        8.8,
+        7.97,
+        8.97,
+        3.71,
+        1.91,
+        0.0,
+        1.9
+      ]
+    },
+    {
+      "profile": "baseline",
+      "seed": 11,
+      "total_tokens": 652449,
+      "total_fixed": 54,
+      "total_defects": 80,
+      "fix_rate": 0.675,
+      "tokens_per_fix": 12082.4,
+      "knee_round": 7,
+      "knee_method": "observed",
+      "marginal_series": [
+        21.83,
+        9.87,
+        8.1,
+        6.75,
+        3.12,
+        1.65,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "profile": "baseline",
+      "seed": 23,
+      "total_tokens": 478607,
+      "total_fixed": 58,
+      "total_defects": 80,
+      "fix_rate": 0.725,
+      "tokens_per_fix": 8251.8,
+      "knee_round": 7,
+      "knee_method": "observed",
+      "marginal_series": [
+        29.26,
+        10.76,
+        11.43,
+        2.14,
+        4.69,
+        2.89,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "profile": "weak",
+      "seed": 7,
+      "total_tokens": 662644,
+      "total_fixed": 50,
+      "total_defects": 80,
+      "fix_rate": 0.625,
+      "tokens_per_fix": 13252.9,
+      "knee_round": 7,
+      "knee_method": "observed",
+      "marginal_series": [
+        20.1,
+        8.03,
+        7.62,
+        6.07,
+        1.43,
+        7.17,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "profile": "weak",
+      "seed": 11,
+      "total_tokens": 747330,
+      "total_fixed": 46,
+      "total_defects": 80,
+      "fix_rate": 0.575,
+      "tokens_per_fix": 16246.3,
+      "knee_round": 15,
+      "knee_method": "loglinear_extrapolation",
+      "marginal_series": [
+        15.58,
+        6.09,
+        9.11,
+        5.33,
+        2.49,
+        1.28,
+        1.34,
+        1.35
+      ]
+    },
+    {
+      "profile": "weak",
+      "seed": 23,
+      "total_tokens": 653184,
+      "total_fixed": 49,
+      "total_defects": 80,
+      "fix_rate": 0.6125,
+      "tokens_per_fix": 13330.3,
+      "knee_round": 8,
+      "knee_method": "observed",
+      "marginal_series": [
+        19.8,
+        12.27,
+        3.41,
+        4.89,
+        5.71,
+        0.0,
+        1.57,
+        0.0
+      ]
+    }
+  ],
+  "by_profile": {
+    "strong": {
+      "runs": 3,
+      "knee_rounds": [
+        5,
+        7,
+        6
+      ],
+      "knee_mean": 6,
+      "knee_min": 5,
+      "knee_max": 7,
+      "fix_rate_mean": 0.7833,
+      "tokens_per_fix_mean": 6669.2,
+      "tokens_mean": 417391.0
+    },
+    "baseline": {
+      "runs": 3,
+      "knee_rounds": [
+        7,
+        7,
+        7
+      ],
+      "knee_mean": 7,
+      "knee_min": 7,
+      "knee_max": 7,
+      "fix_rate_mean": 0.7042,
+      "tokens_per_fix_mean": 10097.3,
+      "tokens_mean": 566216
+    },
+    "weak": {
+      "runs": 3,
+      "knee_rounds": [
+        7,
+        15,
+        8
+      ],
+      "knee_mean": 10,
+      "knee_min": 7,
+      "knee_max": 15,
+      "fix_rate_mean": 0.6042,
+      "tokens_per_fix_mean": 14276.5,
+      "tokens_mean": 687719.0
+    }
+  }
+}

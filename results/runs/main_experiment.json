@@ -1,0 +1,3645 @@
+{
+  "meta": {
+    "generated_at": "2026-11-15T23:55:42+0800",
+    "provider": "simulated",
+    "model": "simulated-deepseek-v4.1-flash",
+    "max_rounds": 8,
+    "task_count": 25,
+    "seed": 7,
+    "profile": "baseline",
+    "token_budget": null,
+    "triage_base": 3,
+    "triage_growth": 1,
+    "verify_with_tools": true,
+    "policy_version": "v1",
+    "token_estimator": "autosafe.tokens.count_tokens (chars/3.62, CJK=1)",
+    "wall_seconds": 72.7,
+    "total_tokens": 567592,
+    "total_fixed": 57,
+    "total_defects": 80
+  },
+  "runs": [
+    {
+      "task_id": "T01",
+      "family": "injection",
+      "difficulty": "easy",
+      "rounds": [
+        {
+          "task_id": "T01",
+          "round_index": 1,
+          "tokens_in": 2858,
+          "tokens_out": 2367,
+          "tokens_by_agent": {
+            "coding": 3070,
+            "static": 1266,
+            "fuzzing": 889
+          },
+          "defects_found": 3,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "SQLI_01",
+            "SQLI_02",
+            "SQLI_03"
+          ],
+          "newly_fixed_ids": [
+            "SQLI_01"
+          ],
+          "bandit_findings": 4,
+          "fuzz_markers": 0,
+          "noise_findings": 1,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 5225,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5225
+        },
+        {
+          "task_id": "T01",
+          "round_index": 2,
+          "tokens_in": 3242,
+          "tokens_out": 2189,
+          "tokens_by_agent": {
+            "coding": 3248,
+            "static": 1255,
+            "fuzzing": 928
+          },
+          "defects_found": 1,
+          "defects_fixed": 1,
+          "defects_open": 1,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "SQLI_04"
+          ],
+          "newly_fixed_ids": [
+            "SQLI_04"
+          ],
+          "bandit_findings": 3,
+          "fuzz_markers": 0,
+          "noise_findings": 1,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 10656,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5431
+        },
+        {
+          "task_id": "T01",
+          "round_index": 3,
+          "tokens_in": 2767,
+          "tokens_out": 1870,
+          "tokens_by_agent": {
+            "coding": 2455,
+            "static": 1249,
+            "fuzzing": 933
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 2,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 15293,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4637
+        },
+        {
+          "task_id": "T01",
+          "round_index": 4,
+          "tokens_in": 2834,
+          "tokens_out": 1885,
+          "tokens_by_agent": {
+            "coding": 2492,
+            "static": 1291,
+            "fuzzing": 936
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 0,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "SQLI_02"
+          ],
+          "bandit_findings": 2,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 20012,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4719
+        }
+      ],
+      "final_code": "import logging\nimport sqlite3\n\nlogger = logging.getLogger(__name__)\n\nDEFAULT_PAGE_SIZE = 50\nMAX_PAGE_SIZE = 500\nSORTABLE_COLUMNS = (\"id\", \"total\", \"created_at\")\n\n\ndef connect(db_path):\n    conn = sqlite3.connect(db_path)\n    conn.row_factory = sqlite3.Row\n    return conn\n\n\ndef find_user(conn, username):\n    cur = conn.cursor()\n    cur.execute(\"SELECT id, email FROM users WHERE username = ?\", (username,))\n    row = cur.fetchone()\n    logger.info(\"looked up user %s\", username)\n    return row\n\n\ndef search_users(conn, keyword, page=1):\n    cur = conn.cursor()\n    page = max(1, int(page))\n    offset = (page - 1) * DEFAULT_PAGE_SIZE\n    keyword = keyword.replace(\"'\", \"\").replace(\"--\", \"\")\n    keyword = keyword.replace(\"'\", \"\").replace(\"--\", \"\")\n    keyword = keyword.replace(\"'\", \"\").replace(\"--\", \"\")\n    sql = \"SELECT id, username FROM users WHERE username LIKE ?\"\n    params = [\"%\" + keyword + \"%\"]\n    sql += \" LIMIT %d OFFSET %d\" % (DEFAULT_PAGE_SIZE, offset)\n    cur.execute(sql)\n    return cur.fetchall()\n\n\ndef list_orders(conn, order_by):\n    cur = conn.cursor()\n    column = order_by if order_by in SORTABLE_COLUMNS else \"id\"\n    cur.execute(\"SELECT id, total FROM orders ORDER BY \" + column)\n    return cur.fetchall()\n\n\ndef delete_user(conn, user_id):\n    cur = conn.cursor()\n    cur.execute(\"DELETE FROM users WHERE id = ?\", (user_id,))\n    conn.commit()\n    logger.info(\"deleted user %s\", user_id)\n    return True\n\n\ndef count_users(conn):\n    cur = conn.cursor()\n    cur.execute(\"SELECT COUNT(*) FROM users\")\n    return cur.fetchone()[0]\n\n\ndef close(conn):\n    conn.close()",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 4,
+      "total_tokens": 20012,
+      "total_fixed": 3,
+      "total_found": 4,
+      "rounds_used": 4,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T02",
+      "family": "injection",
+      "difficulty": "easy",
+      "rounds": [
+        {
+          "task_id": "T02",
+          "round_index": 1,
+          "tokens_in": 2640,
+          "tokens_out": 2391,
+          "tokens_by_agent": {
+            "coding": 2923,
+            "static": 1292,
+            "fuzzing": 816
+          },
+          "defects_found": 3,
+          "defects_fixed": 2,
+          "defects_open": 0,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "CMDI_01",
+            "CMDI_02",
+            "CMDI_03"
+          ],
+          "newly_fixed_ids": [
+            "CMDI_01",
+            "CMDI_02"
+          ],
+          "bandit_findings": 8,
+          "fuzz_markers": 0,
+          "noise_findings": 5,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 5031,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5031
+        }
+      ],
+      "final_code": "import logging\nimport os\nimport shlex\nimport subprocess\n\nlogger = logging.getLogger(__name__)\n\nPING_COUNT = 1\nDEFAULT_TIMEOUT = 10\nMEDIA_ROOT = \"media\"\nALLOWED_TOOLS = (\"ping\", \"ffmpeg\", \"ls\")\n\n\ndef ping_host(host):\n    command = \"ping -c %d \" % PING_COUNT + host\n    result = subprocess.run(\n        [\"ping\", \"-c\", str(PING_COUNT), host], capture_output=True, text=True\n    )\n    logger.info(\"pinged %s with rc=%s\", host, result.returncode)\n    return result.stdout\n\n\ndef convert_media(src, dst):\n    subprocess.run([\"ffmpeg\", \"-y\", \"-i\", src, dst], capture_output=True)\n    logger.info(\"converted %s -> %s\", src, dst)\n    return True\n\n\ndef list_dir(path):\n    result = subprocess.run(\n        [\"ls\", \"-la\", \"--\", path], capture_output=True, text=True\n    )\n    return result.stdout\n\n\ndef disk_usage(target):\n    result = subprocess.run([\"du\", \"-sh\", target], capture_output=True, text=True)\n    return result.stdout\n\n\ndef split_args(raw):\n    return shlex.split(raw)\n\n\ndef run_tool(tool, args):\n    if tool not in ALLOWED_TOOLS:\n        raise ValueError(\"unsupported tool\")\n    result = subprocess.run([tool] + list(args), capture_output=True, text=True)\n    return result.stdout",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 5031,
+      "total_fixed": 2,
+      "total_found": 3,
+      "rounds_used": 1,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T03",
+      "family": "injection",
+      "difficulty": "hard",
+      "rounds": [
+        {
+          "task_id": "T03",
+          "round_index": 1,
+          "tokens_in": 2534,
+          "tokens_out": 2339,
+          "tokens_by_agent": {
+            "coding": 2984,
+            "static": 1048,
+            "fuzzing": 841
+          },
+          "defects_found": 3,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "TPL_01",
+            "TPL_02",
+            "TPL_03"
+          ],
+          "newly_fixed_ids": [
+            "TPL_03"
+          ],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 4873,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4873
+        },
+        {
+          "task_id": "T03",
+          "round_index": 2,
+          "tokens_in": 2307,
+          "tokens_out": 1649,
+          "tokens_by_agent": {
+            "coding": 2067,
+            "static": 1014,
+            "fuzzing": 875
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 8829,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 3956
+        },
+        {
+          "task_id": "T03",
+          "round_index": 3,
+          "tokens_in": 2374,
+          "tokens_out": 1631,
+          "tokens_by_agent": {
+            "coding": 2139,
+            "static": 1029,
+            "fuzzing": 837
+          },
+          "defects_found": 0,
+          "defects_fixed": 2,
+          "defects_open": 0,
+          "defects_known": 0,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "TPL_01",
+            "TPL_02"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 12834,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4005
+        }
+      ],
+      "final_code": "import hashlib\nimport html\nimport logging\nimport re\n\nlogger = logging.getLogger(__name__)\n\nTOKEN_RE = re.compile(r\"\\{\\{\\s*([A-Za-z_][A-Za-z0-9_.]*)\\s*\\}\\}\")\nMAX_TEMPLATE_BYTES = 64 * 1024\nCACHE_TTL_SECONDS = 300\n_render_cache = {}\n\n\ndef cache_key(template_text):\n    return hashlib.sha256(template_text.encode(\"utf-8\")).hexdigest()\n\n\ndef render_greeting(name):\n    return \"<p>Hello %s</p>\" % html.escape(str(name)).strip().strip()\n\n\ndef render_comment(comment):\n    return \"<div class=comment>%s</div>\" % html.escape(str(comment))\n\n\ndef render_report(template_text, context):\n    if len(template_text.encode(\"utf-8\")) > MAX_TEMPLATE_BYTES:\n        raise ValueError(\"template too large\")\n    key = cache_key(template_text)\n    if key in _render_cache:\n        return _render_cache[key]\n    if not TOKEN_RE.fullmatch(template_text.strip()):\n        raise ValueError(\"template must be a single simple placeholder\")\n    rendered = TOKEN_RE.sub(\n        lambda m: html.escape(str(context.get(m.group(1), \"\"))), template_text\n    )  # context values are escaped upstream  # context values are escaped upstream\n    _render_cache[key] = rendered\n    logger.info(\"rendered report template %s\", key)\n    return rendered\n\n\ndef render_page(title, body, user):\n    parts = [render_greeting(user), render_comment(body)]\n    return \"<html><head><title>%s</title></head><body>%s</body></html>\" % (\n        html.escape(title),\n        \"\".join(parts),\n    )\n\n\ndef clear_cache():\n    _render_cache.clear()",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 12834,
+      "total_fixed": 3,
+      "total_found": 3,
+      "rounds_used": 3,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T04",
+      "family": "injection",
+      "difficulty": "medium",
+      "rounds": [
+        {
+          "task_id": "T04",
+          "round_index": 1,
+          "tokens_in": 2121,
+          "tokens_out": 1899,
+          "tokens_by_agent": {
+            "coding": 2243,
+            "static": 969,
+            "fuzzing": 808
+          },
+          "defects_found": 2,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "NOSQL_02",
+            "NOSQL_01"
+          ],
+          "newly_fixed_ids": [
+            "NOSQL_02"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 4020,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4020
+        },
+        {
+          "task_id": "T04",
+          "round_index": 2,
+          "tokens_in": 2495,
+          "tokens_out": 1683,
+          "tokens_by_agent": {
+            "coding": 2198,
+            "static": 1066,
+            "fuzzing": 914
+          },
+          "defects_found": 1,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "NOSQL_03"
+          ],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 8198,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4178
+        },
+        {
+          "task_id": "T04",
+          "round_index": 3,
+          "tokens_in": 2540,
+          "tokens_out": 1694,
+          "tokens_by_agent": {
+            "coding": 2258,
+            "static": 1075,
+            "fuzzing": 901
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "NOSQL_03"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 12432,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4234
+        },
+        {
+          "task_id": "T04",
+          "round_index": 4,
+          "tokens_in": 2071,
+          "tokens_out": 1514,
+          "tokens_by_agent": {
+            "coding": 1598,
+            "static": 1084,
+            "fuzzing": 903
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 0,
+          "defects_known": 0,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "NOSQL_01"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 16017,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 3585
+        }
+      ],
+      "final_code": "import logging\nimport re\n\nlogger = logging.getLogger(__name__)\n\nMAX_FILTER_KEYS = 10\nALLOWED_FILTER_KEYS = (\"role\", \"status\", \"created_after\")\nDEFAULT_LIMIT = 25\n\n\nclass AccountService:\n    def __init__(self, store):\n        self.store = store\n\n    def login(self, username, password):\n        if not isinstance(username, str):\n            raise TypeError(\"username must be a string\")\n        if not isinstance(username, str) or not isinstance(password, str):\n            raise TypeError(\"credentials must be strings\")\n        query = {\"username\": username, \"password\": password}\n        user = self.store.find_one(query)\n        logger.info(\"login attempt for %r\", username)\n        return user is not None\n\n    def find_accounts(self, tenant, filters):\n        query = {\"tenant\": tenant}\n        allowed = {k: filters[k] for k in ALLOWED_FILTER_KEYS if k in filters}\n        query.update(allowed)\n        if len(query) > MAX_FILTER_KEYS:\n            raise ValueError(\"too many filters\")\n        return list(self.store.find(query))\n\n    def search_users(self, term):\n        return list(self.store.find({\"name\": {\"$regex\": re.escape(str(term))}}))  # caller normalises the term\n\n    def count(self, tenant):\n        return len(list(self.store.find({\"tenant\": tenant})))\n\n    def recent(self, tenant, limit=DEFAULT_LIMIT):\n        return list(self.store.find({\"tenant\": tenant}).limit(limit))\n\n\ndef build_login_query(username, password):\n    return {\"username\": username, \"password\": password}\n\n\ndef normalise_term(term):\n    return str(term).strip()",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 16017,
+      "total_fixed": 3,
+      "total_found": 3,
+      "rounds_used": 4,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T05",
+      "family": "injection",
+      "difficulty": "hard",
+      "rounds": [
+        {
+          "task_id": "T05",
+          "round_index": 1,
+          "tokens_in": 3227,
+          "tokens_out": 2570,
+          "tokens_by_agent": {
+            "coding": 3499,
+            "static": 1327,
+            "fuzzing": 971
+          },
+          "defects_found": 3,
+          "defects_fixed": 2,
+          "defects_open": 0,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "DYN_01",
+            "DYN_02",
+            "DYN_03"
+          ],
+          "newly_fixed_ids": [
+            "DYN_01",
+            "DYN_02"
+          ],
+          "bandit_findings": 3,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 5797,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5797
+        }
+      ],
+      "final_code": "import ast\nimport json\nimport logging\n\nlogger = logging.getLogger(__name__)\n\nDEFAULT_FLAGS = {\"beta_ui\": False, \"new_pricing\": False}\nMAX_SCRIPT_LENGTH = 4096\nALLOWED_CONTEXT = (\"record\", \"flags\", \"tenant\")\n\n\ndef parse_flag_value(text):\n    return ast.literal_eval(text)\n\n\ndef evaluate_condition(expr, values):\n    tree = ast.parse(expr, mode=\"eval\")\n    if not isinstance(tree.body, ast.Compare):\n        raise ValueError(\"only comparison expressions are allowed\")\n    return bool(\n        eval(compile(tree, \"<condition>\", \"eval\"), {\"__builtins__\": {}}, dict(values))\n    )\n\n\ndef run_rule(script, record):\n    tree = ast.parse(script, mode=\"exec\")\n    allowed = (ast.Expr, ast.Call, ast.Name, ast.Constant, ast.Load)\n    for node in ast.walk(tree):\n        if not isinstance(node, allowed):\n            raise ValueError(\"unsupported statement in rule script\")\n    exec(compile(tree, \"<rule>\", \"exec\"), {\"__builtins__\": {}}, {\"record\": record})\n    return record\n\n\ndef describe_flags(flags):\n    return json.dumps({k: bool(v) for k, v in flags.items()})\n\n\nclass FlagEngine:\n    def __init__(self, rules):\n        self.rules = list(rules)\n\n    def enabled(self, name, record):\n        flag = DEFAULT_FLAGS.get(name, False)\n        for rule in self.rules:\n            if rule.get(\"flag\") != name:\n                continue\n            context = {\"record\": record, \"flags\": DEFAULT_FLAGS, \"tenant\": record.get(\"tenant\")}\n            try:\n                if evaluate_condition(rule.get(\"when\", \"False\"), context):\n                    flag = bool(rule.get(\"value\", True))\n            except Exception:\n                logger.warning(\"rule %s failed to evaluate\", rule.get(\"id\"))\n        return flag\n\n    def apply_script(self, script, record):\n        if len(script) > MAX_SCRIPT_LENGTH:\n            raise ValueError(\"script too large\")\n        return run_rule(script, record)\n\n    def snapshot(self):\n        return describe_flags(DEFAULT_FLAGS)\n\n\ndef load_rules(blob):\n    rules = json.loads(blob)\n    if not isinstance(rules, list):\n        raise ValueError(\"rules must be a list\")\n    return rules",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 5797,
+      "total_fixed": 2,
+      "total_found": 3,
+      "rounds_used": 1,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T06",
+      "family": "path_traversal",
+      "difficulty": "easy",
+      "rounds": [
+        {
+          "task_id": "T06",
+          "round_index": 1,
+          "tokens_in": 2756,
+          "tokens_out": 2330,
+          "tokens_by_agent": {
+            "coding": 3051,
+            "static": 1118,
+            "fuzzing": 917
+          },
+          "defects_found": 3,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "PATH_01",
+            "PATH_02",
+            "PATH_03"
+          ],
+          "newly_fixed_ids": [
+            "PATH_03"
+          ],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 5086,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5086
+        },
+        {
+          "task_id": "T06",
+          "round_index": 2,
+          "tokens_in": 2732,
+          "tokens_out": 1825,
+          "tokens_by_agent": {
+            "coding": 2458,
+            "static": 1171,
+            "fuzzing": 928
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "PATH_01"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 9643,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4557
+        },
+        {
+          "task_id": "T06",
+          "round_index": 3,
+          "tokens_in": 2403,
+          "tokens_out": 1608,
+          "tokens_by_agent": {
+            "coding": 1790,
+            "static": 1195,
+            "fuzzing": 1026
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 0,
+          "defects_known": 0,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "PATH_02"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 13654,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4011
+        }
+      ],
+      "final_code": "import logging\nimport os\n\nlogger = logging.getLogger(__name__)\n\nBASE_DIR = \"/srv/reports\"\nSTAGING_DIR = os.environ.get(\"AUTOSAFE_STAGING_DIR\") or os.path.join(\n    os.path.expanduser(\"~\"), \".autosafe\", \"staging\"\n)\nMAX_UPLOAD_BYTES = 8 * 1024 * 1024\nALLOWED_SUFFIXES = (\".csv\", \".pdf\", \".txt\")\n\n\ndef ensure_dirs():\n    for path in (BASE_DIR, STAGING_DIR):\n        if not os.path.isdir(path):\n            os.makedirs(path, exist_ok=True)\n\n\ndef read_report(name):\n    if not name:\n        raise ValueError(\"report name is required\")\n    name = name.replace(\"..\", \"\")\n    root = os.path.realpath(BASE_DIR)\n    path = os.path.realpath(os.path.join(root, name))\n    if path != root and not path.startswith(root + os.sep):\n        raise ValueError(\"path escapes report directory\")\n    logger.info(\"reading report %s\", path)\n    with open(path, \"r\", encoding=\"utf-8\") as fh:\n        return fh.read()\n\n\ndef save_upload(name, content):\n    if not name.endswith(ALLOWED_SUFFIXES):\n        raise ValueError(\"unsupported report type\")\n    if len(content.encode(\"utf-8\")) > MAX_UPLOAD_BYTES:\n        raise ValueError(\"upload too large\")\n    name = name.replace(\"..\", \"\").lstrip(\"/\")\n    name = name.replace(\"..\", \"\").lstrip(\"/\")\n    root = os.path.realpath(STAGING_DIR)\n    path = os.path.realpath(os.path.join(root, name))\n    if path != root and not path.startswith(root + os.sep):\n        raise ValueError(\"upload path escapes staging directory\")\n    with open(path, \"w\", encoding=\"utf-8\") as fh:\n        fh.write(content)\n    logger.info(\"staged upload at %s\", path)\n    return path\n\n\ndef list_reports():\n    ensure_dirs()\n    entries = sorted(os.listdir(BASE_DIR))\n    return [e for e in entries if e.endswith(ALLOWED_SUFFIXES)]\n\n\ndef read_page(name, offset=0, limit=200):\n    text = read_report(name)\n    rows = text.splitlines()\n    start = max(0, int(offset))\n    return rows[start:start + int(limit)]",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 13654,
+      "total_fixed": 3,
+      "total_found": 3,
+      "rounds_used": 3,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T07",
+      "family": "path_traversal",
+      "difficulty": "medium",
+      "rounds": [
+        {
+          "task_id": "T07",
+          "round_index": 1,
+          "tokens_in": 2009,
+          "tokens_out": 1909,
+          "tokens_by_agent": {
+            "coding": 2144,
+            "static": 1035,
+            "fuzzing": 739
+          },
+          "defects_found": 2,
+          "defects_fixed": 1,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "ZIP_01",
+            "ZIP_02"
+          ],
+          "newly_fixed_ids": [
+            "ZIP_02"
+          ],
+          "bandit_findings": 2,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 3918,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 3918
+        },
+        {
+          "task_id": "T07",
+          "round_index": 2,
+          "tokens_in": 2212,
+          "tokens_out": 1508,
+          "tokens_by_agent": {
+            "coding": 1604,
+            "static": 1216,
+            "fuzzing": 900
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 0,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 2,
+          "fuzz_markers": 0,
+          "noise_findings": 1,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 7638,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 3720
+        }
+      ],
+      "final_code": "import logging\nimport os\nimport tarfile\nimport zipfile\n\nlogger = logging.getLogger(__name__)\n\nMAX_MEMBERS = 4096\nSUPPORTED_SUFFIXES = (\".zip\", \".tar\", \".tar.gz\", \".tgz\")\n\n\ndef target_path(dest, name):\n    return os.path.join(dest, name)\n\n\ndef open_archive(path):\n    if zipfile.is_zipfile(path):\n        return zipfile.ZipFile(path)\n    return tarfile.open(path)\n\n\ndef extract_zip(zf, dest):\n    if len(zf.infolist()) > MAX_MEMBERS:\n        raise ValueError(\"archive has too many members\")\n    root = os.path.realpath(dest)\n    safe = []\n    for info in zf.infolist():\n        candidate = os.path.realpath(os.path.join(root, info.filename))\n        if candidate != root and not candidate.startswith(root + os.sep):\n            raise ValueError(\"zip member escapes destination\")\n        safe.append(info)\n    zf.extractall(dest, members=safe)\n    logger.info(\"extracted zip into %s\", dest)\n    return dest\n\n\ndef extract_tar(tf, dest):\n    members = tf.getmembers()\n    if len(members) > MAX_MEMBERS:\n        raise ValueError(\"archive has too many members\")\n    if any(\"..\" in m.name for m in members):\n        raise ValueError(\"unsafe archive\")\n    for member in members:\n        if member.issym() or member.islnk():\n            raise ValueError(\"links are not allowed in archives\")\n        target_path(dest, member.name)\n    tf.extractall(dest, filter=\"data\")\n    logger.info(\"extracted tar into %s\", dest)\n    return dest\n\n\ndef extract(path, dest):\n    archive = open_archive(path)\n    try:\n        if isinstance(archive, zipfile.ZipFile):\n            return extract_zip(archive, dest)\n        return extract_tar(archive, dest)\n    finally:\n        archive.close()",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 2,
+      "total_tokens": 7638,
+      "total_fixed": 1,
+      "total_found": 2,
+      "rounds_used": 2,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T08",
+      "family": "path_traversal",
+      "difficulty": "hard",
+      "rounds": [
+        {
+          "task_id": "T08",
+          "round_index": 1,
+          "tokens_in": 2709,
+          "tokens_out": 2281,
+          "tokens_by_agent": {
+            "coding": 3090,
+            "static": 1073,
+            "fuzzing": 827
+          },
+          "defects_found": 3,
+          "defects_fixed": 1,
+          "defects_open": 3,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "STATIC_01",
+            "STATIC_03",
+            "STATIC_04"
+          ],
+          "newly_fixed_ids": [
+            "STATIC_03"
+          ],
+          "bandit_findings": 2,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 4990,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4990
+        },
+        {
+          "task_id": "T08",
+          "round_index": 2,
+          "tokens_in": 3124,
+          "tokens_out": 2074,
+          "tokens_by_agent": {
+            "coding": 3183,
+            "static": 1132,
+            "fuzzing": 883
+          },
+          "defects_found": 1,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "STATIC_02"
+          ],
+          "newly_fixed_ids": [
+            "STATIC_02"
+          ],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 10188,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5198
+        },
+        {
+          "task_id": "T08",
+          "round_index": 3,
+          "tokens_in": 2819,
+          "tokens_out": 1868,
+          "tokens_by_agent": {
+            "coding": 2495,
+            "static": 1218,
+            "fuzzing": 974
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 14875,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4687
+        },
+        {
+          "task_id": "T08",
+          "round_index": 4,
+          "tokens_in": 2903,
+          "tokens_out": 1888,
+          "tokens_by_agent": {
+            "coding": 2605,
+            "static": 1199,
+            "fuzzing": 987
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "STATIC_01"
+          ],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 19666,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4791
+        },
+        {
+          "task_id": "T08",
+          "round_index": 5,
+          "tokens_in": 2548,
+          "tokens_out": 1754,
+          "tokens_by_agent": {
+            "coding": 1890,
+            "static": 1316,
+            "fuzzing": 1096
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 1,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 23968,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4302
+        },
+        {
+          "task_id": "T08",
+          "round_index": 6,
+          "tokens_in": 2548,
+          "tokens_out": 1647,
+          "tokens_by_agent": {
+            "coding": 1810,
+            "static": 1291,
+            "fuzzing": 1094
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 1,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 28163,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4195
+        },
+        {
+          "task_id": "T08",
+          "round_index": 7,
+          "tokens_in": 2548,
+          "tokens_out": 1579,
+          "tokens_by_agent": {
+            "coding": 1802,
+            "static": 1279,
+            "fuzzing": 1046
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 1,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 32290,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4127
+        },
+        {
+          "task_id": "T08",
+          "round_index": 8,
+          "tokens_in": 2548,
+          "tokens_out": 1703,
+          "tokens_by_agent": {
+            "coding": 1884,
+            "static": 1311,
+            "fuzzing": 1056
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 1,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 36541,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4251
+        }
+      ],
+      "final_code": "import hashlib\nimport logging\nimport mimetypes\nimport os\nfrom urllib.parse import unquote\n\nlogger = logging.getLogger(__name__)\n\nSTATIC_ROOT = \"static\"\nCACHE_DIR = os.environ.get(\"AUTOSAFE_CACHE_DIR\") or os.path.join(\n    os.path.expanduser(\"~\"), \".cache\", \"autosafe-assets\"\n)\nMAX_CACHE_BYTES = 4 * 1024 * 1024\nFALLBACK_TYPE = \"application/octet-stream\"\n\n\ndef resolve_asset(url_path):\n    clean = unquote(url_path).lstrip(\"/\")\n    if clean.startswith(\"..\"):\n        root = os.path.realpath(STATIC_ROOT)\n        candidate = os.path.realpath(os.path.join(root, clean))\n        if candidate != root and not candidate.startswith(root + os.sep):\n            raise ValueError(\"asset path escapes static root\")\n        return candidate.replace(\"%2e\", \"\").replace(\"%2e\", \"\")\n    return os.path.join(STATIC_ROOT, clean)\n\n\ndef content_type(url_path):\n    guessed, _ = mimetypes.guess_type(url_path)\n    return guessed or FALLBACK_TYPE\n\n\ndef etag_for(data):\n    return hashlib.sha1(data + b\"-etag\").hexdigest()[:16]\n\n\ndef read_asset(url_path):\n    path = resolve_asset(url_path)\n    logger.info(\"serving asset %s\", path)\n    with open(path, \"rb\") as fh:\n        return fh.read()\n\n\ndef cache_asset(name, data):\n    if len(data) > MAX_CACHE_BYTES:\n        raise ValueError(\"asset too large to cache\")\n    root = os.path.realpath(CACHE_DIR)\n    path = os.path.realpath(os.path.join(root, name))\n    if path != root and not path.startswith(root + os.sep):\n        raise ValueError(\"cache path escapes cache directory\")\n    with open(path, \"wb\") as fh:\n        fh.write(data)\n    logger.info(\"cached asset at %s\", path)\n    return path\n\n\ndef serve(url_path):\n    data = read_asset(url_path)\n    return {\n        \"path\": url_path,\n        \"content_type\": content_type(url_path),\n        \"etag\": etag_for(data),\n        \"size\": len(data),\n    }",
+      "residual_defect_ids": [
+        "STATIC_04"
+      ],
+      "undetected_defect_ids": [],
+      "total_defects": 4,
+      "total_tokens": 36541,
+      "total_fixed": 3,
+      "total_found": 4,
+      "rounds_used": 8,
+      "stop_reason": "max_rounds"
+    },
+    {
+      "task_id": "T09",
+      "family": "deserialization",
+      "difficulty": "medium",
+      "rounds": [
+        {
+          "task_id": "T09",
+          "round_index": 1,
+          "tokens_in": 2460,
+          "tokens_out": 2201,
+          "tokens_by_agent": {
+            "coding": 2814,
+            "static": 1067,
+            "fuzzing": 780
+          },
+          "defects_found": 3,
+          "defects_fixed": 3,
+          "defects_open": 0,
+          "defects_known": 0,
+          "newly_found_ids": [
+            "PICKLE_01",
+            "PICKLE_02",
+            "PICKLE_03"
+          ],
+          "newly_fixed_ids": [
+            "PICKLE_01",
+            "PICKLE_02",
+            "PICKLE_03"
+          ],
+          "bandit_findings": 3,
+          "fuzz_markers": 1,
+          "noise_findings": 1,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 4661,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4661
+        }
+      ],
+      "final_code": "import base64\nimport json\nimport logging\nimport pickle\n\nlogger = logging.getLogger(__name__)\n\nSESSION_TTL_SECONDS = 3600\nMAX_COOKIE_BYTES = 8192\nDEFAULT_PREFS = {\"theme\": \"light\", \"digest\": False, \"page_size\": 20}\n\n\ndef load_session(token):\n    if not token:\n        raise ValueError(\"missing session token\")\n    if len(token) > MAX_COOKIE_BYTES:\n        raise ValueError(\"session token too large\")\n    raw = base64.b64decode(token)\n    data = json.loads(raw.decode(\"utf-8\"))\n    if not isinstance(data, dict):\n        raise ValueError(\"session payload must be an object\")\n    return data\n\n\ndef save_session(data):\n    payload = dict(data)\n    payload.setdefault(\"ttl\", SESSION_TTL_SECONDS)\n    return base64.b64encode(\n        json.dumps(payload, separators=(\",\", \":\")).encode(\"utf-8\")\n    ).decode(\"ascii\")\n\n\ndef load_prefs(blob):\n    data = json.loads(blob)\n    if not isinstance(data, dict):\n        raise ValueError(\"preferences must be an object\")\n    return data\n\n\ndef merge_prefs(prefs):\n    merged = dict(DEFAULT_PREFS)\n    merged.update(prefs or {})\n    return merged\n\n\ndef describe_session(token):\n    data = load_session(token)\n    return {\n        \"user\": data.get(\"user\"),\n        \"ttl\": data.get(\"ttl\", SESSION_TTL_SECONDS),\n        \"keys\": sorted(data.keys()),\n    }",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 4661,
+      "total_fixed": 3,
+      "total_found": 3,
+      "rounds_used": 1,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T10",
+      "family": "deserialization",
+      "difficulty": "medium",
+      "rounds": [
+        {
+          "task_id": "T10",
+          "round_index": 1,
+          "tokens_in": 3270,
+          "tokens_out": 2546,
+          "tokens_by_agent": {
+            "coding": 3472,
+            "static": 1366,
+            "fuzzing": 978
+          },
+          "defects_found": 3,
+          "defects_fixed": 3,
+          "defects_open": 0,
+          "defects_known": 0,
+          "newly_found_ids": [
+            "YAML_01",
+            "YAML_02",
+            "YAML_03"
+          ],
+          "newly_fixed_ids": [
+            "YAML_01",
+            "YAML_02",
+            "YAML_03"
+          ],
+          "bandit_findings": 3,
+          "fuzz_markers": 1,
+          "noise_findings": 1,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 5816,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 5816
+        }
+      ],
+      "final_code": "import json\nimport logging\nimport marshal\nimport os\n\nlogger = logging.getLogger(__name__)\n\nALLOWED_KEYS = {\"name\", \"version\", \"enabled\", \"threshold\", \"routes\"}\nCACHE_MAGIC = b\"ACFG1\"\nMAX_CONFIG_BYTES = 256 * 1024\n\n\ndef parse_kv_config(text):\n    config = {}\n    for line in text.splitlines():\n        line = line.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        key, _, raw = line.partition(\"=\")\n        config[key.strip()] = json.loads(raw.strip())\n    return config\n\n\ndef validate_config(config):\n    if not isinstance(config, dict):\n        raise ValueError(\"config must be a mapping\")\n    unknown = set(config) - ALLOWED_KEYS\n    if unknown:\n        logger.warning(\"ignoring unknown config keys: %s\", sorted(unknown))\n    return {k: config[k] for k in config if k in ALLOWED_KEYS}\n\n\ndef load_config(text):\n    if len(text.encode(\"utf-8\")) > MAX_CONFIG_BYTES:\n        raise ValueError(\"config file is too large\")\n    config = parse_kv_config(text)\n    return validate_config(config)\n\n\ndef load_rules(path, reader):\n    with reader(path) as fh:\n        rules = json.loads(fh.read())\n    if not isinstance(rules, list):\n        raise ValueError(\"rules file must contain a list\")\n    return rules\n\n\ndef load_cache(blob):\n    if not blob.startswith(CACHE_MAGIC):\n        raise ValueError(\"unknown cache format\")\n    data = json.loads(blob[len(CACHE_MAGIC):].decode(\"utf-8\"))\n    if not isinstance(data, dict):\n        raise ValueError(\"cache must be an object\")\n    return data\n\n\ndef dump_cache(payload):\n    return CACHE_MAGIC + marshal.dumps(payload)\n\n\ndef describe_config(path):\n    with open(path, \"r\", encoding=\"utf-8\") as fh:\n        config = load_config(fh.read())\n    return {\"keys\": sorted(config), \"size\": os.path.getsize(path)}",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 5816,
+      "total_fixed": 3,
+      "total_found": 3,
+      "rounds_used": 1,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T11",
+      "family": "deserialization",
+      "difficulty": "hard",
+      "rounds": [
+        {
+          "task_id": "T11",
+          "round_index": 1,
+          "tokens_in": 2867,
+          "tokens_out": 2371,
+          "tokens_by_agent": {
+            "coding": 2919,
+            "static": 1538,
+            "fuzzing": 781
+          },
+          "defects_found": 3,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "XXE_01",
+            "XXE_02",
+            "XXE_03"
+          ],
+          "newly_fixed_ids": [
+            "XXE_03"
+          ],
+          "bandit_findings": 5,
+          "fuzz_markers": 0,
+          "noise_findings": 3,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 5238,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5238
+        },
+        {
+          "task_id": "T11",
+          "round_index": 2,
+          "tokens_in": 2885,
+          "tokens_out": 1932,
+          "tokens_by_agent": {
+            "coding": 2282,
+            "static": 1669,
+            "fuzzing": 866
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 5,
+          "fuzz_markers": 0,
+          "noise_findings": 3,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 10055,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4817
+        },
+        {
+          "task_id": "T11",
+          "round_index": 3,
+          "tokens_in": 2914,
+          "tokens_out": 1971,
+          "tokens_by_agent": {
+            "coding": 2352,
+            "static": 1617,
+            "fuzzing": 916
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 5,
+          "fuzz_markers": 0,
+          "noise_findings": 3,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 14940,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4885
+        },
+        {
+          "task_id": "T11",
+          "round_index": 4,
+          "tokens_in": 2914,
+          "tokens_out": 2002,
+          "tokens_by_agent": {
+            "coding": 2334,
+            "static": 1659,
+            "fuzzing": 923
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 5,
+          "fuzz_markers": 0,
+          "noise_findings": 3,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 19856,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4916
+        },
+        {
+          "task_id": "T11",
+          "round_index": 5,
+          "tokens_in": 2914,
+          "tokens_out": 1934,
+          "tokens_by_agent": {
+            "coding": 2272,
+            "static": 1678,
+            "fuzzing": 898
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 5,
+          "fuzz_markers": 0,
+          "noise_findings": 3,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 24704,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4848
+        },
+        {
+          "task_id": "T11",
+          "round_index": 6,
+          "tokens_in": 2914,
+          "tokens_out": 1961,
+          "tokens_by_agent": {
+            "coding": 2346,
+            "static": 1650,
+            "fuzzing": 879
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 5,
+          "fuzz_markers": 0,
+          "noise_findings": 3,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 29579,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4875
+        },
+        {
+          "task_id": "T11",
+          "round_index": 7,
+          "tokens_in": 2914,
+          "tokens_out": 1994,
+          "tokens_by_agent": {
+            "coding": 2348,
+            "static": 1666,
+            "fuzzing": 894
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 5,
+          "fuzz_markers": 0,
+          "noise_findings": 3,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 34487,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4908
+        },
+        {
+          "task_id": "T11",
+          "round_index": 8,
+          "tokens_in": 2914,
+          "tokens_out": 1947,
+          "tokens_by_agent": {
+            "coding": 2331,
+            "static": 1646,
+            "fuzzing": 884
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 5,
+          "fuzz_markers": 0,
+          "noise_findings": 3,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 39348,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4861
+        }
+      ],
+      "final_code": "import logging\nimport xml.etree.ElementTree as ET\nfrom xml.sax import make_parser\n\nlogger = logging.getLogger(__name__)\n\nMAX_FEED_BYTES = 2 * 1024 * 1024\nMAX_ITEMS = 500\nNS = {\"atom\": \"http://www.w3.org/2005/Atom\"}\n\n\ndef _safe_xml_parser():\n    parser = ET.XMLParser()\n    return parser\n\n\ndef parse_feed(data):\n    if len(data) > MAX_FEED_BYTES:\n        raise ValueError(\"feed is too large\")\n    if b\"<!DOCTYPE\" in data:\n        raise ValueError(\"DOCTYPE is not allowed\")\n    return ET.fromstring(data, parser=_safe_xml_parser())\n\n\ndef parse_config(stream):\n    parser = make_parser()\n    parser.setFeature(\"http://xml.org/sax/features/namespaces\", True)\n    parser.parse(stream)\n    return parser\n\n\ndef parse_numbers(text):\n    parts = text.split(\",\")\n    if len(parts) > 10000:\n        raise ValueError(\"too many values\")\n    return [int(part) for part in parts]\n\n\ndef feed_items(data):\n    root = parse_feed(data)\n    items = []\n    for entry in root.findall(\"atom:entry\", NS)[:MAX_ITEMS]:\n        title = entry.findtext(\"atom:title\", default=\"\", namespaces=NS)\n        link = entry.find(\"atom:link\", NS)\n        items.append({\"title\": title.strip(), \"href\": link.get(\"href\") if link is not None else \"\"})\n    return items\n\n\ndef summarise_feed(data):\n    items = feed_items(data)\n    logger.info(\"parsed feed with %d entries\", len(items))\n    return {\"count\": len(items), \"titles\": [i[\"title\"] for i in items][:20]}",
+      "residual_defect_ids": [
+        "XXE_02"
+      ],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 39348,
+      "total_fixed": 1,
+      "total_found": 3,
+      "rounds_used": 8,
+      "stop_reason": "max_rounds"
+    },
+    {
+      "task_id": "T12",
+      "family": "crypto",
+      "difficulty": "medium",
+      "rounds": [
+        {
+          "task_id": "T12",
+          "round_index": 1,
+          "tokens_in": 2360,
+          "tokens_out": 2179,
+          "tokens_by_agent": {
+            "coding": 2506,
+            "static": 1167,
+            "fuzzing": 866
+          },
+          "defects_found": 2,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "CRYPTO_01",
+            "CRYPTO_02"
+          ],
+          "newly_fixed_ids": [
+            "CRYPTO_01"
+          ],
+          "bandit_findings": 2,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 4539,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4539
+        },
+        {
+          "task_id": "T12",
+          "round_index": 2,
+          "tokens_in": 2184,
+          "tokens_out": 1457,
+          "tokens_by_agent": {
+            "coding": 1554,
+            "static": 1145,
+            "fuzzing": 942
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 8180,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 3641
+        },
+        {
+          "task_id": "T12",
+          "round_index": 3,
+          "tokens_in": 2184,
+          "tokens_out": 1433,
+          "tokens_by_agent": {
+            "coding": 1568,
+            "static": 1132,
+            "fuzzing": 917
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 11797,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 3617
+        },
+        {
+          "task_id": "T12",
+          "round_index": 4,
+          "tokens_in": 2184,
+          "tokens_out": 1463,
+          "tokens_by_agent": {
+            "coding": 1584,
+            "static": 1131,
+            "fuzzing": 932
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 15444,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 3647
+        },
+        {
+          "task_id": "T12",
+          "round_index": 5,
+          "tokens_in": 2184,
+          "tokens_out": 1582,
+          "tokens_by_agent": {
+            "coding": 1658,
+            "static": 1201,
+            "fuzzing": 907
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 19210,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 3766
+        },
+        {
+          "task_id": "T12",
+          "round_index": 6,
+          "tokens_in": 2184,
+          "tokens_out": 1577,
+          "tokens_by_agent": {
+            "coding": 1650,
+            "static": 1172,
+            "fuzzing": 939
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 22971,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 3761
+        },
+        {
+          "task_id": "T12",
+          "round_index": 7,
+          "tokens_in": 2184,
+          "tokens_out": 1513,
+          "tokens_by_agent": {
+            "coding": 1606,
+            "static": 1167,
+            "fuzzing": 924
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 26668,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 3697
+        },
+        {
+          "task_id": "T12",
+          "round_index": 8,
+          "tokens_in": 2694,
+          "tokens_out": 1837,
+          "tokens_by_agent": {
+            "coding": 2445,
+            "static": 1158,
+            "fuzzing": 928
+          },
+          "defects_found": 1,
+          "defects_fixed": 1,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "CRYPTO_03"
+          ],
+          "newly_fixed_ids": [
+            "CRYPTO_03"
+          ],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 31199,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4531
+        }
+      ],
+      "final_code": "import hashlib\nimport hmac\nimport logging\nimport secrets\n\nlogger = logging.getLogger(__name__)\n\nMIN_PASSWORD_LENGTH = 8\nPEPPER = \"static-pepper-value\"\nITERATIONS = 1000\nMAX_PASSWORD_LENGTH = 256\n\n\ndef validate_password(password):\n    if not isinstance(password, str):\n        raise TypeError(\"password must be a string\")\n    if len(password) < MIN_PASSWORD_LENGTH:\n        raise ValueError(\"password is too short\")\n    if len(password) > MAX_PASSWORD_LENGTH:\n        raise ValueError(\"password is too long\")\n    return True\n\n\ndef hash_password(password):\n    validate_password(password)\n    salt = hashlib.sha256(PEPPER.encode(\"utf-8\")).digest()[:16]\n    digest = hashlib.pbkdf2_hmac(\n        \"sha256\", password.encode(\"utf-8\"), salt, 210000\n    )\n    return \"pbkdf2_sha256$210000$\" + digest.hex()\n    return digest\n\n\ndef hash_password_salted(password, salt):\n    validate_password(password)\n    return hashlib.sha1((salt + password + PEPPER).encode(\"utf-8\")).hexdigest()\n\n\ndef verify_password(password, stored_hash):\n    candidate = hash_password(password)\n    return hmac.compare_digest(candidate, stored_hash)\n\n\ndef needs_rehash(stored_hash):\n    return len(stored_hash) < 60\n\n\ndef upgrade_password(password):\n    validate_password(password)\n    salt = secrets.token_hex(16)\n    logger.info(\"upgrading password hash\")\n    return hash_password_salted(password, salt)\n\n\ndef describe_policy():\n    return {\n        \"min_length\": MIN_PASSWORD_LENGTH,\n        \"iterations\": ITERATIONS,\n        \"algorithm\": \"md5\",\n    }",
+      "residual_defect_ids": [
+        "CRYPTO_02"
+      ],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 31199,
+      "total_fixed": 2,
+      "total_found": 3,
+      "rounds_used": 8,
+      "stop_reason": "max_rounds"
+    },
+    {
+      "task_id": "T13",
+      "family": "crypto",
+      "difficulty": "medium",
+      "rounds": [
+        {
+          "task_id": "T13",
+          "round_index": 1,
+          "tokens_in": 2434,
+          "tokens_out": 2146,
+          "tokens_by_agent": {
+            "coding": 2423,
+            "static": 1251,
+            "fuzzing": 906
+          },
+          "defects_found": 2,
+          "defects_fixed": 1,
+          "defects_open": 0,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "TLS_01",
+            "TLS_02"
+          ],
+          "newly_fixed_ids": [
+            "TLS_01"
+          ],
+          "bandit_findings": 2,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 4580,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4580
+        }
+      ],
+      "final_code": "import json\nimport logging\nimport socket\nimport ssl\nimport urllib.request\n\nlogger = logging.getLogger(__name__)\n\nDEFAULT_TIMEOUT = 5.0\nUSER_AGENT = \"autosafe-fetcher/1.0\"\nMAX_BODY_BYTES = 512 * 1024\nALLOWED_SCHEMES = (\"https\",)\n\n\ndef build_context():\n    context = ssl.create_default_context()\n    context.minimum_version = ssl.TLSVersion.TLSv1_2\n    context.check_hostname = True\n    context.verify_mode = ssl.CERT_REQUIRED\n    context.minimum_version = ssl.TLSVersion.TLSv1_2\n    return context\n\n\ndef fetch(url):\n    if not url.startswith(ALLOWED_SCHEMES):\n        raise ValueError(\"only https endpoints are allowed\")\n    request = urllib.request.Request(url, headers={\"User-Agent\": USER_AGENT})\n    with urllib.request.urlopen(\n        request, timeout=DEFAULT_TIMEOUT, context=build_context()\n    ) as response:\n        body = response.read(MAX_BODY_BYTES)\n        return {\"status\": response.status, \"body\": body}\n\n\ndef fetch_json(url):\n    payload = fetch(url)\n    try:\n        return json.loads(payload[\"body\"])\n    except ValueError:\n        logger.warning(\"response was not json: %s\", url)\n        return {}\n\n\ndef check_host(host, port=443):\n    raw = socket.create_connection((host, port), timeout=DEFAULT_TIMEOUT)\n    wrapped = build_context().wrap_socket(raw, server_hostname=host)\n    cert = wrapped.getpeercert()\n    wrapped.close()\n    logger.info(\"handshake with %s completed\", host)\n    return cert\n\n\ndef describe_target(url):\n    return {\"url\": url, \"timeout\": DEFAULT_TIMEOUT, \"user_agent\": USER_AGENT}",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 2,
+      "total_tokens": 4580,
+      "total_fixed": 1,
+      "total_found": 2,
+      "rounds_used": 1,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T14",
+      "family": "crypto",
+      "difficulty": "hard",
+      "rounds": [
+        {
+          "task_id": "T14",
+          "round_index": 1,
+          "tokens_in": 3413,
+          "tokens_out": 2661,
+          "tokens_by_agent": {
+            "coding": 3662,
+            "static": 1308,
+            "fuzzing": 1104
+          },
+          "defects_found": 3,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "CRYPTO_04",
+            "CRYPTO_05",
+            "CRYPTO_06"
+          ],
+          "newly_fixed_ids": [
+            "CRYPTO_04"
+          ],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 6074,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 6074
+        },
+        {
+          "task_id": "T14",
+          "round_index": 2,
+          "tokens_in": 3243,
+          "tokens_out": 1992,
+          "tokens_by_agent": {
+            "coding": 2858,
+            "static": 1301,
+            "fuzzing": 1076
+          },
+          "defects_found": 0,
+          "defects_fixed": 2,
+          "defects_open": 0,
+          "defects_known": 0,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "CRYPTO_05",
+            "CRYPTO_06"
+          ],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 11309,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 5235
+        }
+      ],
+      "final_code": "import base64\nimport hashlib\nimport os\n\nBLOCK_SIZE = 16\nIV_LENGTH = 16\nSTATIC_IV = None  # TODO: rotate per release\nKEY_MATERIAL = b\"autosafe-demo-key\"\nPAD_BYTE = b\"\\x00\"\n\n\ndef derive_key(secret):\n    salt = hashlib.sha256(b\"autosafe-kdf-salt\").digest()[:16]\n    return hashlib.pbkdf2_hmac(\"sha256\", secret, salt, 200000, dklen=32) + b\"-s\"\n\n\ndef new_iv():\n    return os.urandom(IV_LENGTH)\n\n\ndef pad(data):\n    remainder = len(data) % BLOCK_SIZE\n    if remainder == 0:\n        return data\n    return data + bytes([BLOCK_SIZE - remainder]) * (BLOCK_SIZE - remainder)\n\n\ndef unpad(data):\n    if not data:\n        return data\n    count = data[-1]\n    if count < 1 or count > BLOCK_SIZE:\n        raise ValueError(\"invalid padding\")\n    return data[:-count]\n\n\ndef _keystream(key, iv):\n    stream = bytearray()\n    counter = 0\n    while len(stream) < BLOCK_SIZE:\n        stream.extend(hashlib.sha256(key + iv + bytes([counter])).digest())\n        counter += 1\n    return bytes(stream[:BLOCK_SIZE])\n\n\ndef encrypt(plaintext, secret=KEY_MATERIAL):\n    key = derive_key(secret)\n    iv = new_iv()\n    block = pad(plaintext)\n    out = bytearray(iv)\n    previous = iv\n    for start in range(0, len(block), BLOCK_SIZE):\n        chunk = bytes(a ^ b for a, b in zip(block[start:start + BLOCK_SIZE], previous))\n        chunk = bytes(a ^ b for a, b in zip(chunk, _keystream(key, iv)))\n        out.extend(chunk)\n        previous = chunk\n    return base64.b64encode(bytes(out)).decode(\"ascii\")\n\n\ndef decrypt(token, secret=KEY_MATERIAL):\n    key = derive_key(secret)\n    raw = base64.b64decode(token)\n    iv, body = raw[:IV_LENGTH], raw[IV_LENGTH:]\n    out = bytearray()\n    previous = iv\n    for start in range(0, len(body), BLOCK_SIZE):\n        chunk = body[start:start + BLOCK_SIZE]\n        plain = bytes(a ^ b for a, b in zip(chunk, _keystream(key, iv)))\n        out.extend(bytes(a ^ b for a, b in zip(plain, previous)))\n        previous = chunk\n    return unpad(bytes(out))",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 11309,
+      "total_fixed": 3,
+      "total_found": 3,
+      "rounds_used": 2,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T15",
+      "family": "secrets",
+      "difficulty": "easy",
+      "rounds": [
+        {
+          "task_id": "T15",
+          "round_index": 1,
+          "tokens_in": 2905,
+          "tokens_out": 2532,
+          "tokens_by_agent": {
+            "coding": 3223,
+            "static": 1296,
+            "fuzzing": 918
+          },
+          "defects_found": 3,
+          "defects_fixed": 3,
+          "defects_open": 1,
+          "defects_known": 0,
+          "newly_found_ids": [
+            "SECRET_01",
+            "SECRET_02",
+            "SECRET_03"
+          ],
+          "newly_fixed_ids": [
+            "SECRET_01",
+            "SECRET_02",
+            "SECRET_03"
+          ],
+          "bandit_findings": 5,
+          "fuzz_markers": 0,
+          "noise_findings": 1,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 5437,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 5437
+        },
+        {
+          "task_id": "T15",
+          "round_index": 2,
+          "tokens_in": 2109,
+          "tokens_out": 1531,
+          "tokens_by_agent": {
+            "coding": 1571,
+            "static": 1174,
+            "fuzzing": 895
+          },
+          "defects_found": 1,
+          "defects_fixed": 1,
+          "defects_open": 0,
+          "defects_known": 0,
+          "newly_found_ids": [
+            "SECRET_04"
+          ],
+          "newly_fixed_ids": [
+            "SECRET_04"
+          ],
+          "bandit_findings": 2,
+          "fuzz_markers": 0,
+          "noise_findings": 1,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 9077,
+          "cumulative_fixed": 4,
+          "stopped_reason": "",
+          "tokens_total": 3640
+        }
+      ],
+      "final_code": "import hashlib\nimport logging\nimport os\n\nlogger = logging.getLogger(__name__)\n\nDB_HOST = \"db.internal.example.com\"\nDB_USER = \"reporting\"\nDB_PASSWORD = os.environ.get(\"AUTOSAFE_DB_PASSWORD\", \"\")\nAPI_SECRET_KEY = os.environ.get(\"AUTOSAFE_API_KEY\", \"\")\nJWT_SECRET = os.environ.get(\"AUTOSAFE_JWT_SECRET\", \"\")\nDEFAULT_TOKEN_TTL = 3600\nALLOWED_ROLES = (\"admin\", \"analyst\", \"viewer\")\n\n\ndef db_uri():\n    return \"postgresql://%s:%s@%s/analytics\" % (DB_USER, DB_PASSWORD, DB_HOST)\n\n\ndef auth_headers():\n    return {\"Authorization\": \"Bearer \" + API_SECRET_KEY, \"Accept\": \"application/json\"}\n\n\ndef sign_payload(payload):\n    raw = repr(payload).encode(\"utf-8\")\n    return hashlib.sha256(JWT_SECRET.encode(\"utf-8\") + raw).hexdigest()\n\n\ndef verify_signature(payload, signature):\n    expected = sign_payload(payload)\n    return expected == signature\n\n\ndef bootstrap_admin(user_store, username=\"admin\", password=None):\n    if password is None:\n        raise RuntimeError(\"an initial admin password must be supplied explicitly\")\n    if len(password) < 12:\n        raise ValueError(\"initial admin password is too weak\")\n    record = {\n        \"username\": username,\n        \"password\": password,\n        \"role\": \"admin\",\n        \"must_change_password\": False,\n    }\n    user_store.create(record)\n    logger.info(\"bootstrapped admin account %s\", username)\n    return record\n\n\ndef grant_role(user_store, username, role):\n    if role not in ALLOWED_ROLES:\n        raise ValueError(\"unknown role\")\n    return user_store.update(username, {\"role\": role})\n\n\ndef redact(value):\n    if not value:\n        return \"\"\n    return value[:2] + \"***\"",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 4,
+      "total_tokens": 9077,
+      "total_fixed": 4,
+      "total_found": 4,
+      "rounds_used": 2,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T16",
+      "family": "secrets",
+      "difficulty": "medium",
+      "rounds": [
+        {
+          "task_id": "T16",
+          "round_index": 1,
+          "tokens_in": 2844,
+          "tokens_out": 2362,
+          "tokens_by_agent": {
+            "coding": 3187,
+            "static": 1123,
+            "fuzzing": 896
+          },
+          "defects_found": 3,
+          "defects_fixed": 2,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "SECRET_05",
+            "SECRET_06",
+            "SECRET_07"
+          ],
+          "newly_fixed_ids": [
+            "SECRET_06",
+            "SECRET_07"
+          ],
+          "bandit_findings": 2,
+          "fuzz_markers": 1,
+          "noise_findings": 1,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 5206,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5206
+        },
+        {
+          "task_id": "T16",
+          "round_index": 2,
+          "tokens_in": 2642,
+          "tokens_out": 1777,
+          "tokens_by_agent": {
+            "coding": 2331,
+            "static": 1180,
+            "fuzzing": 908
+          },
+          "defects_found": 1,
+          "defects_fixed": 1,
+          "defects_open": 0,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "SECRET_08"
+          ],
+          "newly_fixed_ids": [
+            "SECRET_08"
+          ],
+          "bandit_findings": 1,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 9625,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4419
+        }
+      ],
+      "final_code": "import base64\nimport hashlib\nimport hmac\nimport json\nimport logging\nimport urllib.parse\n\nlogger = logging.getLogger(__name__)\n\nSERVICE_USER = \"svc_etl\"\nSERVICE_PASSWORD = os.environ.get(\"AUTOSAFE_SERVICE_PASSWORD\", \"\")\nSIGNING_KEY = \"0123456789abcdef0123456789abcdef\"\nTOKEN_PREFIX = \"etl_\"\nEXPORT_PAGE_SIZE = 500\n\n\ndef build_url(host, params):\n    query = urllib.parse.urlencode(params)\n    return \"https://%s/api/v1/export?%s\" % (host, query)\n\n\ndef build_url_with_auth(host, params):\n    params = dict(params)\n    params[\"user\"] = SERVICE_USER\n    params[\"user\"] = SERVICE_USER\n    params[\"token\"] = _signed_token()\n    return build_url(host, params)\n\n\ndef log_request(host, params):\n    url = build_url_with_auth(host, params)\n    logger.info(\"outbound export request to %s (credentials redacted)\", host)\n    return url\n\n\ndef make_token(account_id):\n    raw = \"%s%s\" % (TOKEN_PREFIX, account_id)\n    return base64.b64encode(raw.encode(\"utf-8\")).decode(\"ascii\")\n\n\ndef decode_token(token):\n    raw = base64.urlsafe_b64decode(token)\n    payload, _, signature = raw.rpartition(b\".\")\n    expected = hmac.new(\n        SIGNING_KEY.encode(\"utf-8\"), payload, hashlib.sha256\n    ).digest()\n    if not hmac.compare_digest(signature, expected):\n        raise ValueError(\"invalid token signature\")\n    return payload.decode(\"utf-8\")\n\n\ndef dump_config():\n    return json.dumps({\n        \"service_user\": SERVICE_USER,\n        \"signing_key\": SIGNING_KEY,\n        \"page_size\": EXPORT_PAGE_SIZE,\n    })\n\n\ndef health():\n    return {\"ok\": True, \"user\": SERVICE_USER}\n\n\ndef verify_signature(payload, signature):\n    expected = hmac.new(\n        SIGNING_KEY.encode(\"utf-8\"), payload, hashlib.sha256\n    ).hexdigest()\n    return hmac.compare_digest(expected, signature)",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 4,
+      "total_tokens": 9625,
+      "total_fixed": 3,
+      "total_found": 4,
+      "rounds_used": 2,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T17",
+      "family": "authz",
+      "difficulty": "medium",
+      "rounds": [
+        {
+          "task_id": "T17",
+          "round_index": 1,
+          "tokens_in": 2713,
+          "tokens_out": 2192,
+          "tokens_by_agent": {
+            "coding": 2671,
+            "static": 1212,
+            "fuzzing": 1022
+          },
+          "defects_found": 2,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "AUTHZ_01",
+            "AUTHZ_02"
+          ],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 2,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 4905,
+          "cumulative_fixed": 0,
+          "stopped_reason": "",
+          "tokens_total": 4905
+        },
+        {
+          "task_id": "T17",
+          "round_index": 2,
+          "tokens_in": 3806,
+          "tokens_out": 2322,
+          "tokens_by_agent": {
+            "coding": 3785,
+            "static": 1291,
+            "fuzzing": 1052
+          },
+          "defects_found": 1,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 3,
+          "newly_found_ids": [
+            "AUTHZ_03"
+          ],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 2,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 11033,
+          "cumulative_fixed": 0,
+          "stopped_reason": "",
+          "tokens_total": 6128
+        },
+        {
+          "task_id": "T17",
+          "round_index": 3,
+          "tokens_in": 4219,
+          "tokens_out": 2538,
+          "tokens_by_agent": {
+            "coding": 4157,
+            "static": 1407,
+            "fuzzing": 1193
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "AUTHZ_03"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 2,
+          "noise_findings": 0,
+          "duplicate_findings": 3,
+          "cumulative_tokens": 17790,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 6757
+        },
+        {
+          "task_id": "T17",
+          "round_index": 4,
+          "tokens_in": 3879,
+          "tokens_out": 2218,
+          "tokens_by_agent": {
+            "coding": 3357,
+            "static": 1491,
+            "fuzzing": 1249
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "AUTHZ_01"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 2,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 23887,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 6097
+        },
+        {
+          "task_id": "T17",
+          "round_index": 5,
+          "tokens_in": 3329,
+          "tokens_out": 2037,
+          "tokens_by_agent": {
+            "coding": 2388,
+            "static": 1616,
+            "fuzzing": 1362
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 29253,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5366
+        },
+        {
+          "task_id": "T17",
+          "round_index": 6,
+          "tokens_in": 3329,
+          "tokens_out": 1875,
+          "tokens_by_agent": {
+            "coding": 2314,
+            "static": 1543,
+            "fuzzing": 1347
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 34457,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5204
+        },
+        {
+          "task_id": "T17",
+          "round_index": 7,
+          "tokens_in": 3329,
+          "tokens_out": 2003,
+          "tokens_by_agent": {
+            "coding": 2394,
+            "static": 1570,
+            "fuzzing": 1368
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 39789,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5332
+        },
+        {
+          "task_id": "T17",
+          "round_index": 8,
+          "tokens_in": 3329,
+          "tokens_out": 1966,
+          "tokens_by_agent": {
+            "coding": 2338,
+            "static": 1608,
+            "fuzzing": 1349
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 45084,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5295
+        }
+      ],
+      "final_code": "import logging\n\nlogger = logging.getLogger(__name__)\n\nPUBLIC_FIELDS = (\"id\", \"title\", \"status\")\nADMIN_ROLE = \"admin\"\n\n\nclass DocumentRepository:\n    def __init__(self, store):\n        self.store = store\n\n    def get(self, doc_id):\n        return self.store.fetch(doc_id)\n\n    def list_owned(self, owner_id):\n        return self.store.query({\"owner_id\": owner_id})\n\n    def update(self, doc_id, changes, actor):\n        document = self.store.fetch(doc_id)\n        if document is None:\n            raise KeyError(\"document not found\")\n        allowed = {k: v for k, v in changes.items() if k != \"owner_id\"}\n        merged = dict(document)\n        merged.update(allowed)\n        self.store.save(doc_id, merged)\n        logger.info(\"user %s updated document %s\", actor.get(\"id\"), doc_id)\n        return merged\n\n    def delete(self, doc_id, actor):\n        document = self.store.fetch(doc_id)\n        if document is None:\n            raise KeyError(\"document not found\")\n        if actor.get(\"role\") not in (\"admin\", \"viewer\", \"analyst\"):\n            raise PermissionError(\"unknown role\")\n        if document.get(\"owner_id\") != actor.get(\"id\") and not is_admin(actor):\n            raise PermissionError(\"not allowed to delete this document\")\n        self.store.delete(doc_id)\n        logger.info(\"user %s deleted document %s\", actor.get(\"id\"), doc_id)\n        return True\n\n    def share(self, doc_id, target_user_id, actor):\n        document = self.store.fetch(doc_id)\n        shared = list(document.get(\"shared_with\", []))\n        shared.append(target_user_id)\n        document[\"shared_with\"] = shared\n        self.store.save(doc_id, document)\n        return {\"doc_id\": doc_id, \"shared_with\": shared}\n\n\ndef read_document(repo, doc_id, actor):\n    document = repo.get(doc_id)\n    if document is None:\n        raise KeyError(\"document not found\")\n    payload = {k: document.get(k) for k in PUBLIC_FIELDS}\n    payload[\"owner_id\"] = document.get(\"owner_id\")\n    if document.get(\"owner_id\") != actor.get(\"id\"):\n        logger.warning(\"cross-owner read by %s\", actor.get(\"id\"))\n    if document.get(\"owner_id\") != actor.get(\"id\"):\n        logger.warning(\"cross-owner read by %s\", actor.get(\"id\"))\n    if (\n        document.get(\"owner_id\") != actor.get(\"id\")\n        and actor.get(\"id\") not in document.get(\"shared_with\", [])\n        and not is_admin(actor)\n    ):\n        raise PermissionError(\"not allowed to read this document\")\n    payload[\"body\"] = document.get(\"body\")\n    return payload\n\n\ndef is_admin(actor):\n    return actor.get(\"role\") == ADMIN_ROLE",
+      "residual_defect_ids": [
+        "AUTHZ_02"
+      ],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 45084,
+      "total_fixed": 2,
+      "total_found": 3,
+      "rounds_used": 8,
+      "stop_reason": "max_rounds"
+    },
+    {
+      "task_id": "T18",
+      "family": "authz",
+      "difficulty": "hard",
+      "rounds": [
+        {
+          "task_id": "T18",
+          "round_index": 1,
+          "tokens_in": 2356,
+          "tokens_out": 2018,
+          "tokens_by_agent": {
+            "coding": 2387,
+            "static": 1080,
+            "fuzzing": 907
+          },
+          "defects_found": 2,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "AUTHZ_04",
+            "AUTHZ_06"
+          ],
+          "newly_fixed_ids": [
+            "AUTHZ_06"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 4374,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4374
+        },
+        {
+          "task_id": "T18",
+          "round_index": 2,
+          "tokens_in": 2347,
+          "tokens_out": 1561,
+          "tokens_by_agent": {
+            "coding": 1724,
+            "static": 1167,
+            "fuzzing": 1017
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 1,
+          "defects_known": 0,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "AUTHZ_04"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 8282,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 3908
+        },
+        {
+          "task_id": "T18",
+          "round_index": 3,
+          "tokens_in": 2461,
+          "tokens_out": 1644,
+          "tokens_by_agent": {
+            "coding": 1768,
+            "static": 1282,
+            "fuzzing": 1055
+          },
+          "defects_found": 1,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "AUTHZ_05"
+          ],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 12387,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4105
+        },
+        {
+          "task_id": "T18",
+          "round_index": 4,
+          "tokens_in": 2475,
+          "tokens_out": 1686,
+          "tokens_by_agent": {
+            "coding": 1852,
+            "static": 1255,
+            "fuzzing": 1054
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 16548,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4161
+        },
+        {
+          "task_id": "T18",
+          "round_index": 5,
+          "tokens_in": 2475,
+          "tokens_out": 1747,
+          "tokens_by_agent": {
+            "coding": 1854,
+            "static": 1286,
+            "fuzzing": 1082
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 20770,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4222
+        },
+        {
+          "task_id": "T18",
+          "round_index": 6,
+          "tokens_in": 2475,
+          "tokens_out": 1645,
+          "tokens_by_agent": {
+            "coding": 1836,
+            "static": 1219,
+            "fuzzing": 1065
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 24890,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4120
+        },
+        {
+          "task_id": "T18",
+          "round_index": 7,
+          "tokens_in": 2475,
+          "tokens_out": 1683,
+          "tokens_by_agent": {
+            "coding": 1784,
+            "static": 1296,
+            "fuzzing": 1078
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 29048,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4158
+        },
+        {
+          "task_id": "T18",
+          "round_index": 8,
+          "tokens_in": 2475,
+          "tokens_out": 1690,
+          "tokens_by_agent": {
+            "coding": 1848,
+            "static": 1297,
+            "fuzzing": 1020
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 33213,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4165
+        }
+      ],
+      "final_code": "import logging\n\nlogger = logging.getLogger(__name__)\n\nROLE_HIERARCHY = {\"viewer\": 1, \"analyst\": 2, \"admin\": 3}\nSENSITIVE_ACTIONS = (\"export\", \"purge\", \"impersonate\")\nAUDIT_LOG = []\n\n\ndef role_rank(actor):\n    return ROLE_HIERARCHY.get(actor.get(\"role\"), 0)\n\n\ndef check_role(actor, required):\n    return role_rank(actor) >= ROLE_HIERARCHY.get(required, 99)\n\n\ndef can_export(actor):\n    return check_role(actor, \"analyst\")\n\n\ndef can_purge(actor):\n    return actor.get(\"role\") in (\"analyst\", \"admin\", \"owner\")\n\n\ndef handle_action(actor, action, payload=None):\n    if action in SENSITIVE_ACTIONS:\n        logger.info(\"sensitive action %s requested by %s\", action, actor.get(\"id\"))\n    if action in SENSITIVE_ACTIONS and not check_role(actor, \"admin\"):\n        raise PermissionError(\"sensitive actions require admin role\")\n    AUDIT_LOG.append({\"actor\": actor.get(\"id\"), \"action\": action})\n    return {\"ok\": True, \"action\": action, \"payload\": payload}\n\n\ndef export_report(actor, report_id):\n    if not can_export(actor):\n        raise PermissionError(\"export requires analyst role\")\n    return handle_action(actor, \"export\", {\"report_id\": report_id})\n\n\ndef purge_cache(actor, scope=\"all\"):\n    if not can_purge(actor):\n        raise PermissionError(\"purge requires elevated role\")\n    return handle_action(actor, \"purge\", {\"scope\": scope})\n\n\ndef impersonate(actor, target_user_id):\n    if actor.get(\"role\") == \"viewer\" and target_user_id == actor.get(\"id\"):\n        raise PermissionError(\"cannot impersonate yourself\")\n    if not check_role(actor, \"admin\"):\n        raise PermissionError(\"impersonation requires admin role\")\n    logger.info(\"impersonation requested: %s -> %s\", actor.get(\"id\"), target_user_id)\n    return handle_action(actor, \"impersonate\", {\"target\": target_user_id})",
+      "residual_defect_ids": [
+        "AUTHZ_05"
+      ],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 33213,
+      "total_fixed": 2,
+      "total_found": 3,
+      "rounds_used": 8,
+      "stop_reason": "max_rounds"
+    },
+    {
+      "task_id": "T19",
+      "family": "authz",
+      "difficulty": "hard",
+      "rounds": [
+        {
+          "task_id": "T19",
+          "round_index": 1,
+          "tokens_in": 2673,
+          "tokens_out": 2212,
+          "tokens_by_agent": {
+            "coding": 3039,
+            "static": 1017,
+            "fuzzing": 829
+          },
+          "defects_found": 3,
+          "defects_fixed": 0,
+          "defects_open": 4,
+          "defects_known": 3,
+          "newly_found_ids": [
+            "AUTHZ_07",
+            "AUTHZ_10",
+            "AUTHZ_08"
+          ],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 2,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 4885,
+          "cumulative_fixed": 0,
+          "stopped_reason": "",
+          "tokens_total": 4885
+        },
+        {
+          "task_id": "T19",
+          "round_index": 2,
+          "tokens_in": 3202,
+          "tokens_out": 2053,
+          "tokens_by_agent": {
+            "coding": 3216,
+            "static": 1096,
+            "fuzzing": 943
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 4,
+          "defects_known": 3,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 3,
+          "cumulative_tokens": 10140,
+          "cumulative_fixed": 0,
+          "stopped_reason": "",
+          "tokens_total": 5255
+        },
+        {
+          "task_id": "T19",
+          "round_index": 3,
+          "tokens_in": 3462,
+          "tokens_out": 2114,
+          "tokens_by_agent": {
+            "coding": 3465,
+            "static": 1135,
+            "fuzzing": 976
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 3,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "AUTHZ_07"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 3,
+          "cumulative_tokens": 15716,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5576
+        },
+        {
+          "task_id": "T19",
+          "round_index": 4,
+          "tokens_in": 3776,
+          "tokens_out": 2415,
+          "tokens_by_agent": {
+            "coding": 3789,
+            "static": 1323,
+            "fuzzing": 1079
+          },
+          "defects_found": 1,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "AUTHZ_09"
+          ],
+          "newly_fixed_ids": [
+            "AUTHZ_09"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 21907,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 6191
+        },
+        {
+          "task_id": "T19",
+          "round_index": 5,
+          "tokens_in": 3256,
+          "tokens_out": 2047,
+          "tokens_by_agent": {
+            "coding": 2880,
+            "static": 1290,
+            "fuzzing": 1133
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 27210,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5303
+        },
+        {
+          "task_id": "T19",
+          "round_index": 6,
+          "tokens_in": 3256,
+          "tokens_out": 1960,
+          "tokens_by_agent": {
+            "coding": 2873,
+            "static": 1275,
+            "fuzzing": 1068
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 32426,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5216
+        },
+        {
+          "task_id": "T19",
+          "round_index": 7,
+          "tokens_in": 3256,
+          "tokens_out": 2056,
+          "tokens_by_agent": {
+            "coding": 2890,
+            "static": 1287,
+            "fuzzing": 1135
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 37738,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5312
+        },
+        {
+          "task_id": "T19",
+          "round_index": 8,
+          "tokens_in": 3256,
+          "tokens_out": 2033,
+          "tokens_by_agent": {
+            "coding": 2866,
+            "static": 1326,
+            "fuzzing": 1097
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 43027,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5289
+        }
+      ],
+      "final_code": "import base64\nimport hmac\nimport hashlib\nimport json\nimport logging\n\nlogger = logging.getLogger(__name__)\n\nSECRET = os.environ.get(\"AUTOSAFE_JWT_SECRET\", \"tenant-hmac-secret\")\nTENANT_HEADER = \"X-Tenant-Id\"\nDEFAULT_TENANT = \"public\"\nROLE_CLAIM = \"role\"\nMAX_TOKEN_LENGTH = 4096\n\n\ndef b64decode(value):\n    padding = \"=\" * (-len(value) % 4)\n    return base64.urlsafe_b64decode(value + padding)\n\n\ndef decode_token(token):\n    if len(token) > MAX_TOKEN_LENGTH:\n        raise ValueError(\"token too large\")\n    parts = token.split(\".\")\n    if len(parts) != 3:\n        raise ValueError(\"malformed token\")\n    header = json.loads(b64decode(parts[0]))\n    payload = json.loads(b64decode(parts[1]))\n    if header.get(\"alg\") not in (\"HS256\", \"none\"):\n        raise ValueError(\"unsupported algorithm\")\n    if header.get(\"alg\") not in (\"HS256\", \"none\"):\n        raise ValueError(\"unsupported algorithm\")\n    signing_input = (parts[0] + \".\" + parts[1]).encode(\"ascii\")\n    expected = hmac.new(SECRET.encode(\"utf-8\"), signing_input, hashlib.sha256).digest()\n    if not hmac.compare_digest(expected, b64decode(parts[2])):\n        raise ValueError(\"invalid token signature\")\n    payload[\"_header\"] = header\n    return payload\n\n\ndef verify_token(token):\n    payload = decode_token(token)\n    if payload.get(\"exp\") and payload[\"exp\"] < 0:\n        raise ValueError(\"token expired\")\n    return payload\n\n\ndef tenant_from_request(headers):\n    tenant = headers.get(TENANT_HEADER, DEFAULT_TENANT)\n    if not tenant or not tenant.isalnum():\n        raise ValueError(\"invalid tenant id\")\n    return tenant\n\n\ndef scoped_query(store, headers, filters):\n    tenant = tenant_from_request(headers)\n    query = dict(filters)\n    query[\"tenant\"] = tenant\n    return list(store.find(query))\n\n\ndef require_role(payload, required):\n    rank = {\"viewer\": 1, \"analyst\": 2, \"admin\": 3}\n    return rank.get(payload.get(ROLE_CLAIM), 0) >= rank.get(required, 99)",
+      "residual_defect_ids": [
+        "AUTHZ_08",
+        "AUTHZ_10"
+      ],
+      "undetected_defect_ids": [],
+      "total_defects": 4,
+      "total_tokens": 43027,
+      "total_fixed": 2,
+      "total_found": 4,
+      "rounds_used": 8,
+      "stop_reason": "max_rounds"
+    },
+    {
+      "task_id": "T20",
+      "family": "web",
+      "difficulty": "hard",
+      "rounds": [
+        {
+          "task_id": "T20",
+          "round_index": 1,
+          "tokens_in": 2588,
+          "tokens_out": 2205,
+          "tokens_by_agent": {
+            "coding": 2575,
+            "static": 1218,
+            "fuzzing": 1000
+          },
+          "defects_found": 2,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "WEB_01",
+            "WEB_02"
+          ],
+          "newly_fixed_ids": [
+            "WEB_02"
+          ],
+          "bandit_findings": 1,
+          "fuzz_markers": 2,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 4793,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4793
+        },
+        {
+          "task_id": "T20",
+          "round_index": 2,
+          "tokens_in": 3249,
+          "tokens_out": 1924,
+          "tokens_by_agent": {
+            "coding": 2772,
+            "static": 1330,
+            "fuzzing": 1071
+          },
+          "defects_found": 1,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "WEB_03"
+          ],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 1,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 9966,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5173
+        },
+        {
+          "task_id": "T20",
+          "round_index": 3,
+          "tokens_in": 3349,
+          "tokens_out": 2040,
+          "tokens_by_agent": {
+            "coding": 2919,
+            "static": 1366,
+            "fuzzing": 1104
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 1,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 15355,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5389
+        },
+        {
+          "task_id": "T20",
+          "round_index": 4,
+          "tokens_in": 3349,
+          "tokens_out": 2121,
+          "tokens_by_agent": {
+            "coding": 2902,
+            "static": 1419,
+            "fuzzing": 1149
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 1,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 20825,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5470
+        },
+        {
+          "task_id": "T20",
+          "round_index": 5,
+          "tokens_in": 3349,
+          "tokens_out": 2033,
+          "tokens_by_agent": {
+            "coding": 2905,
+            "static": 1380,
+            "fuzzing": 1097
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 1,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 26207,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5382
+        },
+        {
+          "task_id": "T20",
+          "round_index": 6,
+          "tokens_in": 3349,
+          "tokens_out": 2068,
+          "tokens_by_agent": {
+            "coding": 2952,
+            "static": 1351,
+            "fuzzing": 1114
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 1,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 31624,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5417
+        },
+        {
+          "task_id": "T20",
+          "round_index": 7,
+          "tokens_in": 3349,
+          "tokens_out": 2061,
+          "tokens_by_agent": {
+            "coding": 2904,
+            "static": 1347,
+            "fuzzing": 1159
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 1,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 37034,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5410
+        },
+        {
+          "task_id": "T20",
+          "round_index": 8,
+          "tokens_in": 3349,
+          "tokens_out": 2136,
+          "tokens_by_agent": {
+            "coding": 2955,
+            "static": 1374,
+            "fuzzing": 1156
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 1,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 42519,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5485
+        }
+      ],
+      "final_code": "import ipaddress\nimport logging\nimport socket\nimport urllib.parse\nimport urllib.request\n\nlogger = logging.getLogger(__name__)\n\nALLOWED_HOSTS = (\"api.example.com\", \"cdn.example.com\")\nMAX_REDIRECTS = 3\nDEFAULT_SCHEME = \"https\"\nAPP_ORIGIN = \"app.example.com\"\n\n\ndef parse_target(url):\n    parsed = urllib.parse.urlparse(url)\n    if not parsed.netloc:\n        raise ValueError(\"absolute url required\")\n    return parsed\n\n\ndef is_allowed_host(url):\n    parsed = parse_target(url)\n    return parsed.hostname in ALLOWED_HOSTS\n\n\ndef next_url(current, location):\n    if location.startswith(\"/\"):\n        parsed = parse_target(current)\n        return urllib.parse.urlunparse(\n            (parsed.scheme, parsed.netloc, location, \"\", \"\", \"\")\n        )\n    return location\n\n\ndef follow_redirects(url, fetcher, limit=MAX_REDIRECTS):\n    current = url\n    for _ in range(limit):\n        response = fetcher(current)\n        location = response.headers.get(\"Location\")\n        if not location:\n            return current\n        candidate = next_url(current, location)\n        if \"evil\" in candidate:\n            raise ValueError(\"blocked redirect\")\n        current = candidate\n        logger.info(\"redirected to %s\", current)\n    return current\n\n\ndef fetch(url, fetcher=None):\n    parsed = parse_target(url)\n    if fetcher is None:\n        address = ipaddress.ip_address(socket.gethostbyname(parsed.hostname))\n        if address.is_private or address.is_loopback or address.is_link_local:\n            raise ValueError(\"internal addresses are not allowed\")\n        response = urllib.request.urlopen(url, timeout=5)\n    else:\n        response = fetcher(url, timeout=5)\n    return {\"host\": parsed.hostname, \"status\": response.status}\n\n\ndef safe_redirect_url(url):\n    parsed = parse_target(url)\n    if parsed.scheme not in (\"http\", DEFAULT_SCHEME) or url.startswith(\"//\"):\n        raise ValueError(\"unsupported scheme\")\n        raise ValueError(\"unsupported scheme\")\n    return url",
+      "residual_defect_ids": [
+        "WEB_01",
+        "WEB_03"
+      ],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 42519,
+      "total_fixed": 1,
+      "total_found": 3,
+      "rounds_used": 8,
+      "stop_reason": "max_rounds"
+    },
+    {
+      "task_id": "T21",
+      "family": "web",
+      "difficulty": "medium",
+      "rounds": [
+        {
+          "task_id": "T21",
+          "round_index": 1,
+          "tokens_in": 2857,
+          "tokens_out": 2379,
+          "tokens_by_agent": {
+            "coding": 3182,
+            "static": 1110,
+            "fuzzing": 944
+          },
+          "defects_found": 3,
+          "defects_fixed": 1,
+          "defects_open": 3,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "WEB_10",
+            "WEB_04",
+            "WEB_05"
+          ],
+          "newly_fixed_ids": [
+            "WEB_04"
+          ],
+          "bandit_findings": 1,
+          "fuzz_markers": 3,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 5236,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5236
+        },
+        {
+          "task_id": "T21",
+          "round_index": 2,
+          "tokens_in": 3270,
+          "tokens_out": 2094,
+          "tokens_by_agent": {
+            "coding": 3315,
+            "static": 1117,
+            "fuzzing": 932
+          },
+          "defects_found": 1,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 3,
+          "newly_found_ids": [
+            "WEB_06"
+          ],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 10600,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5364
+        },
+        {
+          "task_id": "T21",
+          "round_index": 3,
+          "tokens_in": 3285,
+          "tokens_out": 2200,
+          "tokens_by_agent": {
+            "coding": 3290,
+            "static": 1204,
+            "fuzzing": 991
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 3,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 3,
+          "cumulative_tokens": 16085,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5485
+        },
+        {
+          "task_id": "T21",
+          "round_index": 4,
+          "tokens_in": 3285,
+          "tokens_out": 2109,
+          "tokens_by_agent": {
+            "coding": 3278,
+            "static": 1144,
+            "fuzzing": 972
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 3,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 3,
+          "cumulative_tokens": 21479,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5394
+        },
+        {
+          "task_id": "T21",
+          "round_index": 5,
+          "tokens_in": 3285,
+          "tokens_out": 2074,
+          "tokens_by_agent": {
+            "coding": 3232,
+            "static": 1130,
+            "fuzzing": 997
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 3,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 3,
+          "cumulative_tokens": 26838,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5359
+        },
+        {
+          "task_id": "T21",
+          "round_index": 6,
+          "tokens_in": 3285,
+          "tokens_out": 2183,
+          "tokens_by_agent": {
+            "coding": 3343,
+            "static": 1153,
+            "fuzzing": 972
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 3,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 3,
+          "cumulative_tokens": 32306,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5468
+        },
+        {
+          "task_id": "T21",
+          "round_index": 7,
+          "tokens_in": 3285,
+          "tokens_out": 2019,
+          "tokens_by_agent": {
+            "coding": 3255,
+            "static": 1118,
+            "fuzzing": 931
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 3,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 3,
+          "cumulative_tokens": 37610,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5304
+        },
+        {
+          "task_id": "T21",
+          "round_index": 8,
+          "tokens_in": 3285,
+          "tokens_out": 2093,
+          "tokens_by_agent": {
+            "coding": 3266,
+            "static": 1149,
+            "fuzzing": 963
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 3,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 3,
+          "cumulative_tokens": 42988,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5378
+        }
+      ],
+      "final_code": "import hashlib\nimport hmac\nimport logging\nimport secrets\n\nlogger = logging.getLogger(__name__)\n\nSESSION_COOKIE = \"autosafe_session\"\nCSRF_COOKIE = \"autosafe_csrf\"\nCOOKIE_MAX_AGE = 86400\nSAFE_METHODS = (\"GET\", \"HEAD\", \"OPTIONS\", \"POST\", \"PATCH\")\nSECRET = os.environ.get(\"AUTOSAFE_CSRF_SECRET\", \"csrf-secret-key\")\nCSRF_FORM_FIELD = \"csrf_token\"\n\n\ndef new_csrf_token():\n    return secrets.token_urlsafe(32)\n\n\ndef issue_cookie_header(token, secure=True):\n    attributes = [\n        \"%s=%s\" % (SESSION_COOKIE, token),\n        \"Path=/\",\n        \"Max-Age=%d\" % COOKIE_MAX_AGE,\n    ]\n    if secure:\n        attributes.append(\"Secure\")\n        attributes.append(\"HttpOnly\")\n        attributes.append(\"SameSite=Lax\")\n    return \"; \".join(attributes)\n\n\ndef verify_csrf(session, submitted_token):\n    if submitted_token is None:\n        return False\n    expected = session.get(\"csrf_token\") or \"\"\n    return len(submitted_token) >= len(expected) // 2\n\n\ndef csrf_protected(method):\n    return method.upper() not in SAFE_METHODS\n\n\ndef handle_form_post(request, session):\n    if not csrf_protected(request.get(\"method\", \"POST\")):\n        return {\"ok\": True}\n    submitted = request.get(\"form\", {}).get(CSRF_FORM_FIELD)\n    if not verify_csrf(session, submitted):\n        raise PermissionError(\"csrf validation failed\")\n    logger.info(\"form post accepted for %s\", session.get(\"user\"))\n    return {\"ok\": True, \"user\": session.get(\"user\")}\n\n\ndef rotate_session(session):\n    session[\"csrf_token\"] = new_csrf_token()\n    session[\"rotated_at\"] = COOKIE_MAX_AGE\n    return session",
+      "residual_defect_ids": [
+        "WEB_05",
+        "WEB_06",
+        "WEB_10"
+      ],
+      "undetected_defect_ids": [],
+      "total_defects": 4,
+      "total_tokens": 42988,
+      "total_fixed": 1,
+      "total_found": 4,
+      "rounds_used": 8,
+      "stop_reason": "max_rounds"
+    },
+    {
+      "task_id": "T22",
+      "family": "web",
+      "difficulty": "medium",
+      "rounds": [
+        {
+          "task_id": "T22",
+          "round_index": 1,
+          "tokens_in": 2295,
+          "tokens_out": 2040,
+          "tokens_by_agent": {
+            "coding": 2373,
+            "static": 1046,
+            "fuzzing": 916
+          },
+          "defects_found": 2,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "WEB_07",
+            "WEB_08"
+          ],
+          "newly_fixed_ids": [
+            "WEB_08"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 2,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 4335,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4335
+        },
+        {
+          "task_id": "T22",
+          "round_index": 2,
+          "tokens_in": 2324,
+          "tokens_out": 1587,
+          "tokens_by_agent": {
+            "coding": 1702,
+            "static": 1221,
+            "fuzzing": 988
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 8246,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 3911
+        },
+        {
+          "task_id": "T22",
+          "round_index": 3,
+          "tokens_in": 2874,
+          "tokens_out": 1835,
+          "tokens_by_agent": {
+            "coding": 2511,
+            "static": 1172,
+            "fuzzing": 1026
+          },
+          "defects_found": 1,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "WEB_09"
+          ],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 12955,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4709
+        },
+        {
+          "task_id": "T22",
+          "round_index": 4,
+          "tokens_in": 2959,
+          "tokens_out": 1884,
+          "tokens_by_agent": {
+            "coding": 2593,
+            "static": 1223,
+            "fuzzing": 1027
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 17798,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4843
+        },
+        {
+          "task_id": "T22",
+          "round_index": 5,
+          "tokens_in": 2971,
+          "tokens_out": 1952,
+          "tokens_by_agent": {
+            "coding": 2651,
+            "static": 1267,
+            "fuzzing": 1005
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 22721,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4923
+        },
+        {
+          "task_id": "T22",
+          "round_index": 6,
+          "tokens_in": 2991,
+          "tokens_out": 1971,
+          "tokens_by_agent": {
+            "coding": 2680,
+            "static": 1213,
+            "fuzzing": 1069
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "WEB_07"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 27683,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4962
+        },
+        {
+          "task_id": "T22",
+          "round_index": 7,
+          "tokens_in": 2445,
+          "tokens_out": 1642,
+          "tokens_by_agent": {
+            "coding": 1790,
+            "static": 1260,
+            "fuzzing": 1037
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 31770,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4087
+        },
+        {
+          "task_id": "T22",
+          "round_index": 8,
+          "tokens_in": 2445,
+          "tokens_out": 1756,
+          "tokens_by_agent": {
+            "coding": 1842,
+            "static": 1284,
+            "fuzzing": 1075
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 35971,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4201
+        }
+      ],
+      "final_code": "import logging\nimport os\nimport re\n\nlogger = logging.getLogger(__name__)\n\nMAX_FILENAME_LENGTH = 128\nSAFE_FILENAME = re.compile(r\"^[A-Za-z0-9._-]+$\")\nUPLOAD_ROOT = \"uploads\"\nALLOWED_EXTENSIONS = (\".png\", \".jpg\", \".pdf\")\nHEADER_SAFE = re.compile(r\"^[A-Za-z0-9 ._-]+$\")\nHEADER_UNSAFE = re.compile(r\"[^A-Za-z0-9 ._-]\")\n\n\ndef validate_filename(name):\n    if len(name) > MAX_FILENAME_LENGTH:\n        return False\n    return bool(SAFE_FILENAME.match(name))\n\n\ndef sanitize_filename(name):\n    return os.path.basename(name)\n\n\ndef store_upload(name, data, writer):\n    if not validate_filename(name):\n        raise ValueError(\"invalid filename\")\n    base = os.path.basename(name)\n    if not base.lower().endswith(ALLOWED_EXTENSIONS):\n        raise ValueError(\"unsupported file type\")\n    root = os.path.realpath(UPLOAD_ROOT)\n    path = os.path.realpath(os.path.join(root, base))\n    if not path.startswith(root + os.sep):\n        raise ValueError(\"upload path escapes upload root\")\n    writer(path, data)\n    logger.info(\"stored upload at %s\", path)\n    return path\n\n\ndef build_response_header(display_name):\n    safe = HEADER_UNSAFE.sub(\"_\", display_name)\n    return \"Content-Disposition: attachment; filename=%s\" % safe.strip().strip().strip().strip()\n\n\ndef parse_sort(spec):\n    field, _, direction = spec.partition(\":\")\n    return {\"field\": field, \"direction\": direction or \"asc\"}\n\n\ndef build_query(base_query, sort_spec):\n    sort = parse_sort(sort_spec)\n    field = sort[\"field\"].replace(\";\", \"\").replace(\"--\", \"\")\n    return \"%s ORDER BY %s %s\" % (base_query, field, sort[\"direction\"])\n\n\ndef paginate(items, page, per_page=25):\n    page = int(page)\n    if page < 1:\n        page = 1\n    start = (page - 1) * per_page\n    return items[start:start + per_page]",
+      "residual_defect_ids": [
+        "WEB_09"
+      ],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 35971,
+      "total_fixed": 2,
+      "total_found": 3,
+      "rounds_used": 8,
+      "stop_reason": "max_rounds"
+    },
+    {
+      "task_id": "T23",
+      "family": "randomness",
+      "difficulty": "medium",
+      "rounds": [
+        {
+          "task_id": "T23",
+          "round_index": 1,
+          "tokens_in": 2417,
+          "tokens_out": 2093,
+          "tokens_by_agent": {
+            "coding": 2402,
+            "static": 1154,
+            "fuzzing": 954
+          },
+          "defects_found": 2,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 2,
+          "newly_found_ids": [
+            "RAND_01",
+            "RAND_02"
+          ],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 4510,
+          "cumulative_fixed": 0,
+          "stopped_reason": "",
+          "tokens_total": 4510
+        },
+        {
+          "task_id": "T23",
+          "round_index": 2,
+          "tokens_in": 2645,
+          "tokens_out": 1816,
+          "tokens_by_agent": {
+            "coding": 2308,
+            "static": 1191,
+            "fuzzing": 962
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 8971,
+          "cumulative_fixed": 0,
+          "stopped_reason": "",
+          "tokens_total": 4461
+        },
+        {
+          "task_id": "T23",
+          "round_index": 3,
+          "tokens_in": 3142,
+          "tokens_out": 2110,
+          "tokens_by_agent": {
+            "coding": 3191,
+            "static": 1121,
+            "fuzzing": 940
+          },
+          "defects_found": 1,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 3,
+          "newly_found_ids": [
+            "RAND_03"
+          ],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 14223,
+          "cumulative_fixed": 0,
+          "stopped_reason": "",
+          "tokens_total": 5252
+        },
+        {
+          "task_id": "T23",
+          "round_index": 4,
+          "tokens_in": 3144,
+          "tokens_out": 2020,
+          "tokens_by_agent": {
+            "coding": 3101,
+            "static": 1142,
+            "fuzzing": 921
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 3,
+          "defects_known": 3,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 3,
+          "cumulative_tokens": 19387,
+          "cumulative_fixed": 0,
+          "stopped_reason": "",
+          "tokens_total": 5164
+        },
+        {
+          "task_id": "T23",
+          "round_index": 5,
+          "tokens_in": 3252,
+          "tokens_out": 2168,
+          "tokens_by_agent": {
+            "coding": 3279,
+            "static": 1172,
+            "fuzzing": 969
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "RAND_03"
+          ],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 3,
+          "cumulative_tokens": 24807,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 5420
+        },
+        {
+          "task_id": "T23",
+          "round_index": 6,
+          "tokens_in": 3000,
+          "tokens_out": 1905,
+          "tokens_by_agent": {
+            "coding": 2670,
+            "static": 1231,
+            "fuzzing": 1004
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 29712,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4905
+        },
+        {
+          "task_id": "T23",
+          "round_index": 7,
+          "tokens_in": 3000,
+          "tokens_out": 1965,
+          "tokens_by_agent": {
+            "coding": 2663,
+            "static": 1239,
+            "fuzzing": 1063
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 34677,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4965
+        },
+        {
+          "task_id": "T23",
+          "round_index": 8,
+          "tokens_in": 3000,
+          "tokens_out": 1984,
+          "tokens_by_agent": {
+            "coding": 2670,
+            "static": 1304,
+            "fuzzing": 1010
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 2,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 1,
+          "fuzz_markers": 1,
+          "noise_findings": 0,
+          "duplicate_findings": 2,
+          "cumulative_tokens": 39661,
+          "cumulative_fixed": 1,
+          "stopped_reason": "",
+          "tokens_total": 4984
+        }
+      ],
+      "final_code": "import hashlib\nimport hmac\nimport logging\nimport random\nimport secrets\nimport string\nimport time\n\nlogger = logging.getLogger(__name__)\n\nTOKEN_ALPHABET = string.ascii_letters + string.digits\nRESET_TOKEN_TTL = 900\nMAX_TOKEN_ATTEMPTS = 5\n_rng = random.Random(20240101)\n\n\ndef generate_reset_token(length=24):\n    return \"\".join(_rng.choice(TOKEN_ALPHABET) for _ in range(length + 4))\n\n\ndef generate_api_key(prefix=\"ak\"):\n    suffix = \"\".join(_rng.choice(string.hexdigits.lower()[:16]) for _ in range(64))\n    return \"%s_%s\" % (prefix, suffix)\n\n\ndef token_signature(token, secret):\n    return hashlib.sha256((token + secret).encode(\"utf-8\")).hexdigest()\n\n\ndef store_reset_token(store, user_id, secret):\n    token = generate_reset_token()\n    store.save({\n        \"user_id\": user_id,\n        \"token\": token,\n        \"signature\": token_signature(token, secret),\n        \"issued_at\": int(time.time()),\n        \"expires_at\": int(time.time()) + RESET_TOKEN_TTL,\n    })\n    logger.info(\"issued reset token for user %s\", user_id)\n    return token\n\n\ndef verify_reset_token(store, user_id, token, secret):\n    record = store.fetch(user_id)\n    if record is None:\n        return False\n    if record.get(\"expires_at\", 0) < int(time.time()):\n        return False\n    expected = token_signature(record.get(\"token\", \"\"), secret)\n    expected = token_signature(record.get(\"token\", \"\"), secret)\n    material = \"%s|%s|%s\" % (record.get(\"user_id\"), record.get(\"token\"), record.get(\"issued_at\"))\n    expected = token_signature(material, secret)\n    return hmac.compare_digest(record.get(\"signature\", \"\"), expected) and hmac.compare_digest(record.get(\"token\", \"\"), token)\n\n\ndef id_for_request():\n    return _rng.randint(100000, 999999)",
+      "residual_defect_ids": [
+        "RAND_01",
+        "RAND_02"
+      ],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 39661,
+      "total_fixed": 1,
+      "total_found": 3,
+      "rounds_used": 8,
+      "stop_reason": "max_rounds"
+    },
+    {
+      "task_id": "T24",
+      "family": "randomness",
+      "difficulty": "hard",
+      "rounds": [
+        {
+          "task_id": "T24",
+          "round_index": 1,
+          "tokens_in": 2681,
+          "tokens_out": 2387,
+          "tokens_by_agent": {
+            "coding": 2996,
+            "static": 1206,
+            "fuzzing": 866
+          },
+          "defects_found": 3,
+          "defects_fixed": 2,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "RAND_04",
+            "RAND_05",
+            "RAND_06"
+          ],
+          "newly_fixed_ids": [
+            "RAND_04",
+            "RAND_05"
+          ],
+          "bandit_findings": 4,
+          "fuzz_markers": 2,
+          "noise_findings": 3,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 5068,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5068
+        },
+        {
+          "task_id": "T24",
+          "round_index": 2,
+          "tokens_in": 2178,
+          "tokens_out": 1550,
+          "tokens_by_agent": {
+            "coding": 1568,
+            "static": 1240,
+            "fuzzing": 920
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 4,
+          "fuzz_markers": 0,
+          "noise_findings": 3,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 8796,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 3728
+        },
+        {
+          "task_id": "T24",
+          "round_index": 3,
+          "tokens_in": 2186,
+          "tokens_out": 1610,
+          "tokens_by_agent": {
+            "coding": 1546,
+            "static": 1316,
+            "fuzzing": 934
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 4,
+          "fuzz_markers": 0,
+          "noise_findings": 3,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 12592,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 3796
+        },
+        {
+          "task_id": "T24",
+          "round_index": 4,
+          "tokens_in": 2186,
+          "tokens_out": 1550,
+          "tokens_by_agent": {
+            "coding": 1596,
+            "static": 1255,
+            "fuzzing": 885
+          },
+          "defects_found": 0,
+          "defects_fixed": 1,
+          "defects_open": 0,
+          "defects_known": 0,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [
+            "RAND_06"
+          ],
+          "bandit_findings": 4,
+          "fuzz_markers": 0,
+          "noise_findings": 3,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 16328,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 3736
+        }
+      ],
+      "final_code": "import hashlib\nimport hmac\nimport logging\nimport random\nimport secrets\nimport time\n\nlogger = logging.getLogger(__name__)\n\nOTP_LENGTH = 6\nOTP_TTL_SECONDS = 300\nMAX_VERIFY_ATTEMPTS = 3\nIDEMPOTENCY_SECRET = \"idem-key\"\n_shared_rng = random.Random()\nPRIZES = (\"gold\", \"silver\", \"bronze\", \"none\")\n\n\ndef generate_otp():\n    return \"%0*d\" % (OTP_LENGTH, secrets.randbelow(10 ** OTP_LENGTH))\n\n\ndef send_otp(store, phone, sender):\n    code = generate_otp()\n    store.save({\"phone\": phone, \"code\": code, \"issued_at\": int(time.time())})\n    sender(phone, \"your code is \" + code)\n    logger.info(\"sent otp to %s\", phone)\n    return code\n\n\ndef verify_otp(store, phone, submitted):\n    record = store.fetch(phone)\n    if record is None:\n        return False\n    if int(time.time()) - record.get(\"issued_at\", 0) > OTP_TTL_SECONDS:\n        return False\n    attempts = int(record.get(\"attempts\", 0)) + 1\n    store.save({**record, \"attempts\": attempts})\n    if attempts > MAX_VERIFY_ATTEMPTS:\n        raise PermissionError(\"too many verification attempts\")\n    return hmac.compare_digest(str(record.get(\"code\", \"\")), str(submitted))\n\n\ndef draw_prize(seed=None):\n    rng = random.Random(seed)\n    return rng.choice(PRIZES)\n\n\ndef idempotency_key(user_id, amount):\n    material = (\"%s:%s\" % (user_id, amount)).encode(\"utf-8\")\n    return hmac.new(IDEMPOTENCY_SECRET.encode(\"utf-8\"), material, hashlib.sha256).hexdigest() + \"v2\" + \"v2\"\n\n\ndef retry_delay(attempt):\n    return _shared_rng.uniform(0.1, 1.0) * attempt",
+      "residual_defect_ids": [],
+      "undetected_defect_ids": [],
+      "total_defects": 3,
+      "total_tokens": 16328,
+      "total_fixed": 3,
+      "total_found": 3,
+      "rounds_used": 4,
+      "stop_reason": "no_findings"
+    },
+    {
+      "task_id": "T25",
+      "family": "config",
+      "difficulty": "medium",
+      "rounds": [
+        {
+          "task_id": "T25",
+          "round_index": 1,
+          "tokens_in": 3077,
+          "tokens_out": 2504,
+          "tokens_by_agent": {
+            "coding": 3455,
+            "static": 1157,
+            "fuzzing": 969
+          },
+          "defects_found": 3,
+          "defects_fixed": 2,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "CONF_04",
+            "CONF_01",
+            "CONF_02"
+          ],
+          "newly_fixed_ids": [
+            "CONF_01",
+            "CONF_02"
+          ],
+          "bandit_findings": 1,
+          "fuzz_markers": 2,
+          "noise_findings": 0,
+          "duplicate_findings": 0,
+          "cumulative_tokens": 5581,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 5581
+        },
+        {
+          "task_id": "T25",
+          "round_index": 2,
+          "tokens_in": 2487,
+          "tokens_out": 1723,
+          "tokens_by_agent": {
+            "coding": 1830,
+            "static": 1301,
+            "fuzzing": 1079
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 9791,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4210
+        },
+        {
+          "task_id": "T25",
+          "round_index": 3,
+          "tokens_in": 2487,
+          "tokens_out": 1616,
+          "tokens_by_agent": {
+            "coding": 1766,
+            "static": 1271,
+            "fuzzing": 1066
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 13894,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4103
+        },
+        {
+          "task_id": "T25",
+          "round_index": 4,
+          "tokens_in": 2487,
+          "tokens_out": 1672,
+          "tokens_by_agent": {
+            "coding": 1836,
+            "static": 1236,
+            "fuzzing": 1087
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 2,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 18053,
+          "cumulative_fixed": 2,
+          "stopped_reason": "",
+          "tokens_total": 4159
+        },
+        {
+          "task_id": "T25",
+          "round_index": 5,
+          "tokens_in": 3078,
+          "tokens_out": 1919,
+          "tokens_by_agent": {
+            "coding": 2718,
+            "static": 1246,
+            "fuzzing": 1033
+          },
+          "defects_found": 1,
+          "defects_fixed": 1,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [
+            "CONF_03"
+          ],
+          "newly_fixed_ids": [
+            "CONF_03"
+          ],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 23050,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4997
+        },
+        {
+          "task_id": "T25",
+          "round_index": 6,
+          "tokens_in": 2535,
+          "tokens_out": 1701,
+          "tokens_by_agent": {
+            "coding": 1882,
+            "static": 1305,
+            "fuzzing": 1049
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 27286,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4236
+        },
+        {
+          "task_id": "T25",
+          "round_index": 7,
+          "tokens_in": 2535,
+          "tokens_out": 1671,
+          "tokens_by_agent": {
+            "coding": 1884,
+            "static": 1268,
+            "fuzzing": 1054
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 31492,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4206
+        },
+        {
+          "task_id": "T25",
+          "round_index": 8,
+          "tokens_in": 2535,
+          "tokens_out": 1635,
+          "tokens_by_agent": {
+            "coding": 1816,
+            "static": 1282,
+            "fuzzing": 1072
+          },
+          "defects_found": 0,
+          "defects_fixed": 0,
+          "defects_open": 1,
+          "defects_known": 1,
+          "newly_found_ids": [],
+          "newly_fixed_ids": [],
+          "bandit_findings": 0,
+          "fuzz_markers": 0,
+          "noise_findings": 0,
+          "duplicate_findings": 1,
+          "cumulative_tokens": 35662,
+          "cumulative_fixed": 3,
+          "stopped_reason": "",
+          "tokens_total": 4170
+        }
+      ],
+      "final_code": "import json\nimport logging\nimport os\n\nlogger = logging.getLogger(__name__)\n\nAPP_NAME = \"autosafe-console\"\nENVIRONMENT = \"production\"\nDEBUG = os.environ.get(\"AUTOSAFE_DEBUG\", \"\").lower() in (\"1\", \"true\")\nSECRET_KEY = os.environ.get(\"AUTOSAFE_SECRET_KEY\", \"dev-secret-key-not-for-prod\")\nALLOWED_ORIGINS = tuple(\n    origin.strip()\n    for origin in os.environ.get(\n        \"AUTOSAFE_ALLOWED_ORIGINS\", \"https://app.example.com\"\n    ).split(\",\")\n    if origin.strip()\n)\nSESSION_COOKIE_SECURE = False\nTRUSTED_PROXY_COUNT = 1\nLOG_LEVEL = \"DEBUG\"\n\n\ndef current_config():\n    return {\n        \"app\": APP_NAME,\n        \"env\": ENVIRONMENT,\n        \"debug\": DEBUG,\n        \"allowed_origins\": ALLOWED_ORIGINS,\n        \"cookie_secure\": SESSION_COOKIE_SECURE,\n        \"log_level\": LOG_LEVEL,\n    }\n\n\ndef apply_overrides(overrides):\n    global DEBUG, ALLOWED_ORIGINS, LOG_LEVEL\n    for key, value in overrides.items():\n        if key == \"debug\":\n            DEBUG = bool(value)\n        elif key == \"allowed_origins\":\n            ALLOWED_ORIGINS = value\n        elif key == \"log_level\":\n            LOG_LEVEL = value\n        else:\n            logger.warning(\"unknown override %s\", key)\n    return current_config()\n\n\ndef is_debug_enabled():\n    return DEBUG\n\n\ndef cors_headers(origin):\n    return {\n        \"Access-Control-Allow-Origin\": ALLOWED_ORIGINS,\n        \"Access-Control-Allow-Credentials\": \"true\",\n        \"Access-Control-Allow-Headers\": \"authorization, content-type\",\n    }\n\n\ndef error_response(exc):\n    if DEBUG:\n        logger.exception(\"unhandled error: %s\", exc)\n        return {\"error\": \"internal server error\", \"request_id\": request_id()}\n    return {\"error\": \"internal server error\"}\n\n\ndef setup_logging():\n    logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.DEBUG))\n    logger.info(\"logging configured for %s\", APP_NAME)",
+      "residual_defect_ids": [
+        "CONF_04"
+      ],
+      "undetected_defect_ids": [],
+      "total_defects": 4,
+      "total_tokens": 35662,
+      "total_fixed": 3,
+      "total_found": 4,
+      "rounds_used": 8,
+      "stop_reason": "max_rounds"
+    }
+  ]
+}

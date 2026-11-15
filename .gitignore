@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+pytest-cache-files-*/
+.venv/
+venv/
+
+# 项目运行时产物（可复现生成，不入库）
+build_tmp/
+runs_work/
+*.log
+
+# 本地依赖目录（离线模式用，不随仓库分发）
+.pylibs/
+
+# 仅体积过大且完全可复现的中间数据不入库（148 MB 级）
+results/sensitivity.json
+
+# 关键结果数据**必须入库**：它们是 README / REPORT 中所有数字的原始依据，
+# 让别人能核验结论、也能在不重跑实验的情况下直接看数据。
+# 因此下面这些不再忽略：
+#   results/runs/main_experiment.json   —— 主实验逐轮记账（25 任务 × 8 轮）
+#   results/budget_experiment.json      —— 三种预算策略的真实执行结果
+#   results/analysis.json               —— 分析结论
+#   results/budget_plan.json            —— 预算方案
+#   results/sensitivity_analysis.json   —— 9 次敏感性运行汇总
+#   results/figures/*.png               —— 报告用图
+
